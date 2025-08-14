@@ -347,38 +347,38 @@ function App() {
                 </div>
                 
                 {/* Opportunities List */}
-                <div className="space-y-2 max-h-96 overflow-y-auto">
+                <div className="space-y-3 max-h-96 overflow-y-auto">
                   {signals.slice(0, 10).map((signal, index) => (
                     <div 
                       key={signal.id || index} 
-                      className="grid grid-cols-12 gap-2 items-center bg-gray-800/30 rounded-lg p-3 hover:bg-gray-800/50 transition-colors border border-gray-700/30"
+                      className="grid grid-cols-12 gap-3 items-center bg-gray-800/30 rounded-lg p-4 hover:bg-gray-800/50 transition-colors border border-gray-700/30"
                     >
-                      <div className="col-span-2 flex items-center space-x-2">
-                        <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center text-xs font-bold text-white">
+                      <div className="col-span-2 flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center text-sm font-bold text-white">
                           {signal.symbol?.substring(0, 3) || 'BTC'}
                         </div>
-                        <span className="text-sm text-gray-300">{signal.symbol?.replace('USDT', '/USDT') || 'BTC/USDT'}</span>
+                        <span className="text-sm text-gray-300 font-medium">{signal.symbol?.replace('USDT', '/USDT') || 'BTC/USDT'}</span>
                       </div>
-                      <div className="text-sm text-green-400">{selectedTimeframe}</div>
-                      <div className="flex items-center space-x-1">
-                        <div className="w-12 h-2 bg-gray-700 rounded-full overflow-hidden">
+                      <div className="text-sm text-green-400 font-mono">{selectedTimeframe}</div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-14 h-3 bg-gray-700 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-green-500 rounded-full transition-all duration-300"
                             style={{ width: `${signal.confidence_score || 72}%` }}
                           />
                         </div>
-                        <span className="text-xs text-green-400">{signal.confidence_score || 72}</span>
+                        <span className="text-xs text-green-400 font-mono min-w-[2rem]">{signal.confidence_score || 72}</span>
                       </div>
-                      <div className="text-sm text-green-400">{signal.risk_reward_ratio || '2.30'}</div>
-                      <div className="text-sm text-blue-400">0.69</div>
+                      <div className="text-sm text-green-400 font-mono">{signal.risk_reward_ratio || '2.30'}</div>
+                      <div className="text-sm text-blue-400 font-mono">0.69</div>
                       <div className={`text-sm font-semibold ${signal.signal_type === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
                         {signal.signal_type === 'BUY' ? 'buy' : 'sell'}
                       </div>
-                      <div className="text-sm text-gray-300">{formatPrice(signal.entry_price || 114988.93, signal.symbol)}</div>
-                      <div className="text-sm text-red-400">{formatPrice(signal.stop_loss || 114965.91, signal.symbol)}</div>
-                      <div className="text-sm text-green-400">{formatPrice(signal.take_profit || 115053.58, signal.symbol)}</div>
+                      <div className="text-sm text-gray-300 font-mono">{formatPrice(signal.entry_price || 114988.93, signal.symbol)}</div>
+                      <div className="text-sm text-red-400 font-mono">{formatPrice(signal.stop_loss || 114965.91, signal.symbol)}</div>
+                      <div className="text-sm text-green-400 font-mono">{formatPrice(signal.take_profit || 115053.58, signal.symbol)}</div>
                       <div className="text-xs">
-                        <div className="text-yellow-400">High-vol</div>
+                        <div className="text-yellow-400 font-medium">High-vol</div>
                         <div className="text-gray-400">EMA9/21</div>
                       </div>
                       <div className="text-xs text-gray-400">normal</div>
