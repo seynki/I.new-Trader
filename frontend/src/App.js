@@ -366,7 +366,7 @@ function App() {
                     <div className="max-h-64 overflow-y-auto">
                       {alerts.length > 0 ? (
                         alerts.slice(0, 5).map((alert, index) => (
-                          <div key={alert.id || index} className="p-3 border-b border-gray-800 hover:bg-gray-800/50">
+                          <div key={`${alert.id || 'alert'}-${index}-${Date.now()}`} className="p-3 border-b border-gray-800 hover:bg-gray-800/50">
                             <div className="flex items-start space-x-3">
                               <div className={`mt-1 w-2 h-2 rounded-full ${
                                 alert.priority === 'high' ? 'bg-red-400' : 
