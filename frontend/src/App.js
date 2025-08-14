@@ -527,10 +527,14 @@ function App() {
                       className="grid grid-cols-12 gap-3 items-center bg-gray-800/30 rounded-lg p-4 hover:bg-gray-800/50 transition-colors border border-gray-700/30"
                     >
                       <div className="col-span-2 flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center text-sm font-bold text-white">
-                          {signal.symbol?.substring(0, 3) || 'BTC'}
+                        <div className="w-10 h-10 bg-black/40 backdrop-blur-sm border border-gray-600/30 rounded-lg flex items-center justify-center text-sm font-bold text-green-400">
+                          {getSymbolShort(signal.symbol)}
                         </div>
-                        <span className="text-sm text-gray-300 font-medium">{signal.symbol?.replace('USDT', '/USDT') || 'BTC/USDT'}</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm text-gray-300 font-medium leading-tight">
+                            {formatIQOptionSymbol(signal.symbol)}
+                          </span>
+                        </div>
                       </div>
                       <div className="text-sm text-green-400 font-mono">{selectedTimeframe}</div>
                       <div className="flex items-center space-x-2">
