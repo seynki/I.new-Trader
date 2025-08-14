@@ -670,14 +670,19 @@ def main():
     
     tester = AITradingSystemTester()
     
-    # Run all tests
+    # Run all tests - prioritizing notification system tests
     tests = [
         tester.test_health_endpoint,
         tester.test_market_data_endpoint,
         tester.test_signals_endpoint,
+        tester.test_notification_settings_endpoints,  # New notification tests
+        tester.test_alerts_endpoint,                  # New alerts tests
+        tester.test_iq_option_endpoints,             # New IQ Option tests
+        tester.test_stats_endpoint,                  # New stats tests
         tester.test_indicators_endpoint,
-        tester.test_websocket_connection,
-        tester.test_signal_generation_logic
+        tester.test_websocket_notifications,         # Enhanced WebSocket tests
+        tester.test_signal_generation_logic,
+        tester.test_notification_system_integration  # Integration test
     ]
     
     for test in tests:
@@ -693,6 +698,11 @@ def main():
     print(f"Tests Run: {tester.tests_run}")
     print(f"Tests Passed: {tester.tests_passed}")
     print(f"Success Rate: {(tester.tests_passed/tester.tests_run*100):.1f}%" if tester.tests_run > 0 else "0%")
+    
+    # Detailed notification system results
+    print(f"\n🔔 NOTIFICATION SYSTEM RESULTS:")
+    print(f"WebSocket Messages Received: {len(tester.ws_messages)}")
+    print(f"Trading Alerts Received: {len(tester.notification_alerts_received)}")
     
     if tester.tests_passed == tester.tests_run:
         print("🎉 All backend tests passed!")
