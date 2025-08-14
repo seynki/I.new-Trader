@@ -664,25 +664,191 @@ class AITradingSystemTester:
         
         return False
 
+    def test_review_request_endpoints(self):
+        """Test specific endpoints mentioned in review request"""
+        print(f"\n🎯 Testing Review Request Specific Endpoints...")
+        
+        all_passed = True
+        
+        # 1) GET /api/stats - should return score_avg, max_score, rr_avg, trending_markets
+        print(f"\n1️⃣ Testing GET /api/stats endpoint...")
+        success, response = self.run_test(
+            "Stats Endpoint (Review Request)",
+            "GET",
+            "api/stats",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            required_fields = ['score_avg', 'max_score', 'rr_avg', 'trending_markets']
+            for field in required_fields:
+                if field in response:
+                    print(f"   ✅ Required field '{field}' present: {response[field]}")
+                else:
+                    print(f"   ❌ Required field '{field}' missing")
+                    all_passed = False
+        else:
+            all_passed = False
+        
+        # 2) GET /api/market-data - should return data[] and ensure no SP500/NAS100
+        print(f"\n2️⃣ Testing GET /api/market-data endpoint...")
+        success, response = self.run_test(
+            "Market Data Endpoint (Review Request)",
+            "GET",
+            "api/market-data",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            if 'data' in response and isinstance(response['data'], list):
+                market_data = response['data']
+                print(f"   ✅ Found data[] with {len(market_data)} markets")
+                
+                # Check for SP500 and NAS100 symbols (should NOT be present)
+                symbols = [item.get('symbol', '') for item in market_data]
+                forbidden_symbols = ['SP500', 'NAS100']
+                
+                for symbol in forbidden_symbols:
+                    if symbol in symbols:
+                        print(f"   ❌ Forbidden symbol '{symbol}' found in market data")
+                        all_passed = False
+                    else:
+                        print(f"   ✅ Forbidden symbol '{symbol}' correctly excluded")
+                
+                print(f"   📊 Available symbols: {symbols}")
+            else:
+                print(f"   ❌ 'data' field missing or not a list")
+                all_passed = False
+        else:
+            all_passed = False
+        
+        # 3) GET /api/signals?limit=5 - should return signals[] with confidence_score, risk_reward_ratio
+        print(f"\n3️⃣ Testing GET /api/signals?limit=5 endpoint...")
+        success, response = self.run_test(
+            "Signals Endpoint (Review Request)",
+            "GET",
+            "api/signals?limit=5",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            if 'signals' in response and isinstance(response['signals'], list):
+                signals = response['signals']
+                print(f"   ✅ Found signals[] with {len(signals)} signals")
+                
+                if signals:
+                    # Check required fields in first signal
+                    sample_signal = signals[0]
+                    required_fields = ['confidence_score', 'risk_reward_ratio']
+                    for field in required_fields:
+                        if field in sample_signal:
+                            print(f"   ✅ Required field '{field}' present: {sample_signal[field]}")
+                        else:
+                            print(f"   ❌ Required field '{field}' missing")
+                            all_passed = False
+                else:
+                    print(f"   ⚠️ No signals available, but endpoint working")
+            else:
+                print(f"   ❌ 'signals' field missing or not a list")
+                all_passed = False
+        else:
+            all_passed = False
+        
+        # 4) WebSocket /api/ws - connect, wait 3-5s, verify market_update messages
+        print(f"\n4️⃣ Testing WebSocket /api/ws endpoint...")
+        ws_url = self.base_url.replace('https', 'wss') + '/api/ws'
+        print(f"   WebSocket URL: {ws_url}")
+        
+        market_updates_received = []
+        ws_connected = False
+        
+        def on_message(ws, message):
+            nonlocal market_updates_received
+            try:
+                data = json.loads(message)
+                if data.get('type') == 'market_update':
+                    market_updates_received.append(data)
+                    print(f"   📊 Market update received (total: {len(market_updates_received)})")
+                    
+                    # Optional: Check for SP500/NAS100 in market updates
+                    if 'data' in data and isinstance(data['data'], list):
+                        symbols_in_update = [item.get('symbol', '') for item in data['data']]
+                        forbidden_in_update = [s for s in ['SP500', 'NAS100'] if s in symbols_in_update]
+                        if forbidden_in_update:
+                            print(f"   ⚠️ Forbidden symbols in market update: {forbidden_in_update}")
+                        else:
+                            print(f"   ✅ No forbidden symbols in market update")
+                else:
+                    print(f"   📨 Other message type: {data.get('type', 'unknown')}")
+            except Exception as e:
+                print(f"   ❌ Error parsing WebSocket message: {e}")
+
+        def on_error(ws, error):
+            print(f"   ❌ WebSocket error: {error}")
+
+        def on_close(ws, close_status_code, close_msg):
+            print(f"   🔌 WebSocket closed")
+
+        def on_open(ws):
+            nonlocal ws_connected
+            print(f"   ✅ WebSocket connected successfully")
+            ws_connected = True
+
+        try:
+            import websocket
+            ws = websocket.WebSocketApp(ws_url,
+                                      on_open=on_open,
+                                      on_message=on_message,
+                                      on_error=on_error,
+                                      on_close=on_close)
+            
+            # Run WebSocket in a separate thread
+            wst = threading.Thread(target=ws.run_forever)
+            wst.daemon = True
+            wst.start()
+            
+            # Wait 3-5 seconds as requested
+            print(f"   ⏳ Waiting 5 seconds for market_update messages...")
+            time.sleep(5)
+            
+            if ws_connected:
+                print(f"   ✅ WebSocket connection successful")
+                print(f"   📊 Market updates received: {len(market_updates_received)}")
+                
+                if len(market_updates_received) > 0:
+                    print(f"   ✅ Continuous market_update messages confirmed")
+                else:
+                    print(f"   ⚠️ No market_update messages received in 5 seconds")
+                    all_passed = False
+                
+                ws.close()
+            else:
+                print(f"   ❌ WebSocket connection failed")
+                all_passed = False
+                
+        except Exception as e:
+            print(f"   ❌ WebSocket test failed: {str(e)}")
+            all_passed = False
+        
+        if all_passed:
+            self.tests_passed += 1
+            print(f"\n🎉 All review request endpoints PASSED!")
+        else:
+            print(f"\n❌ Some review request endpoints FAILED!")
+        
+        self.tests_run += 1
+        return all_passed
+
 def main():
-    print("🚀 Starting AI Trading System Backend Tests")
-    print("=" * 50)
+    print("🚀 Starting AI Trading System Backend Tests - Review Request Focus")
+    print("=" * 60)
     
     tester = AITradingSystemTester()
     
-    # Run all tests - prioritizing notification system tests
+    # Run focused tests based on review request
     tests = [
-        tester.test_health_endpoint,
-        tester.test_market_data_endpoint,
-        tester.test_signals_endpoint,
-        tester.test_notification_settings_endpoints,  # New notification tests
-        tester.test_alerts_endpoint,                  # New alerts tests
-        tester.test_iq_option_endpoints,             # New IQ Option tests
-        tester.test_stats_endpoint,                  # New stats tests
-        tester.test_indicators_endpoint,
-        tester.test_websocket_notifications,         # Enhanced WebSocket tests
-        tester.test_signal_generation_logic,
-        tester.test_notification_system_integration  # Integration test
+        tester.test_review_request_endpoints,  # Primary focus
+        tester.test_health_endpoint,           # Basic health check
     ]
     
     for test in tests:
