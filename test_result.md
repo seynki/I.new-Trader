@@ -207,6 +207,7 @@ metadata:
 
 test_plan:
   current_focus:
+    - "IQ Option Symbol Format and Design Update"
     - "Notification System Implementation"
     - "IQ Option Integration (Notifications Only)"
     - "Header Design Improvement - Brain to Green Circle"
