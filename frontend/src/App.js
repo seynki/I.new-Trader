@@ -71,7 +71,8 @@ function App() {
   }, [isStreaming]);
 
   const connectWebSocket = () => {
-    const wsUrl = BACKEND_URL.replace('http', 'ws') + '/api/ws';
+    const wsUrl = BACKEND_URL.replace('https', 'wss').replace('http', 'ws') + '/api/ws';
+    console.log('Connecting WebSocket to:', wsUrl);
     wsRef.current = new WebSocket(wsUrl);
     
     wsRef.current.onopen = () => {
