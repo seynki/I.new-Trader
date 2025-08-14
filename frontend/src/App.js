@@ -538,16 +538,16 @@ function App() {
                       </div>
                       <div className="text-sm text-green-400 font-mono">{selectedTimeframe}</div>
                       <div className="flex items-center space-x-2">
-                        <div className="w-14 h-3 bg-gray-700 rounded-full overflow-hidden">
+                        <div className="w-16 h-3 bg-gray-700 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-green-500 rounded-full transition-all duration-300"
                             style={{ width: `${signal.confidence_score || 72}%` }}
                           />
                         </div>
-                        <span className="text-xs text-green-400 font-mono min-w-[2rem]">{signal.confidence_score || 72}</span>
+                        <span className="text-xs text-green-400 font-mono min-w-[2.5rem] text-right">{signal.confidence_score || 72}</span>
                       </div>
-                      <div className="text-sm text-green-400 font-mono">{signal.risk_reward_ratio || '2.30'}</div>
-                      <div className="text-sm text-blue-400 font-mono">0.69</div>
+                      <div className="text-sm text-green-400 font-mono text-right">{signal.risk_reward_ratio || '2.30'}</div>
+                      <div className="text-sm text-blue-400 font-mono text-right">0.69</div>
                       <div className={`text-sm font-semibold ${signal.signal_type === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
                         {signal.signal_type === 'BUY' ? 'buy' : 'sell'}
                       </div>
