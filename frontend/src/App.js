@@ -22,7 +22,12 @@ import {
   Wifi,
   WifiOff,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Bell,
+  BellOff,
+  AlertTriangle,
+  CheckCircle,
+  Info
 } from 'lucide-react';
 import './App.css';
 
