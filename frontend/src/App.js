@@ -269,6 +269,72 @@ function App() {
             
             {/* Controls */}
             <div className="flex items-center space-x-6">
+              {/* Notifications */}
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className={`p-2 ${showNotifications ? 'bg-gray-700' : 'hover:bg-gray-700/50'}`}
+                >
+                  {notificationSettings.notifications_enabled ? (
+                    <Bell className="h-4 w-4 text-green-400" />
+                  ) : (
+                    <BellOff className="h-4 w-4 text-gray-400" />
+                  )}
+                  {alerts.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {alerts.length}
+                    </span>
+                  )}
+                </Button>
+
+                {/* Notifications Dropdown */}
+                {showNotifications && (
+                  <div className="absolute right-0 top-12 w-80 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50">
+                    <div className="p-4 border-b border-gray-700">
+                      <h3 className="text-sm font-semibold text-green-400">Alertas de Trading</h3>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {alerts.length > 0 ? (
+                        alerts.slice(0, 5).map((alert, index) => (
+                          <div key={alert.id || index} className="p-3 border-b border-gray-800 hover:bg-gray-800/50">
+                            <div className="flex items-start space-x-2">
+                              <div className={`mt-1 w-2 h-2 rounded-full ${
+                                alert.priority === 'high' ? 'bg-red-400' : 
+                                alert.priority === 'medium' ? 'bg-yellow-400' : 'bg-blue-400'
+                              }`} />
+                              <div className="flex-1">
+                                <p className="text-xs font-medium text-gray-200">{alert.title}</p>
+                                <p className="text-xs text-gray-400 mt-1">{alert.message?.substring(0, 100)}...</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {new Date(alert.timestamp).toLocaleTimeString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-4 text-center text-gray-500">
+                          <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">Nenhum alerta recente</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3 border-t border-gray-700">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowNotifications(false)}
+                        className="w-full text-xs text-gray-400 hover:text-green-400"
+                      >
+                        Fechar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Asset Filter */}
               <div className="flex items-center space-x-2">
                 <select 
