@@ -700,6 +700,21 @@ class NotificationManager:
         except Exception as e:
             logger.error(f"Error sending WebSocket notification: {e}")
     
+    def should_notify(self, signal: TradingSignal) -> bool:
+        """Verifica se deve enviar notificação baseado nas configurações"""
+        if not self.settings.notifications_enabled:
+            return False
+            
+        # Verificar score mínimo
+        if signal.confidence_score < self.settings.min_score_threshold:
+            return False
+            
+        # Verificar risk/reward mínimo
+        if signal.risk_reward_ratio < self.settings.min_rr_threshold:
+            return False
+            
+        return True
+    
     async def process_signal_notification(self, signal: TradingSignal):
         """Processa um sinal e envia notificações se necessário"""
         if not self.should_notify(signal):
