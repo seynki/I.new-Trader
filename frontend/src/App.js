@@ -505,16 +505,15 @@ function App() {
               <CardContent>
                 {/* Table Header */}
                 <div className="grid grid-cols-12 gap-3 text-xs text-gray-400 mb-4 px-3 py-2">
-                  <div className="col-span-2 font-semibold">Mercado</div>
-                  <div className="font-semibold">Ativo</div>
+                  <div className="col-span-2 font-semibold">Ativo</div>
                   <div className="font-semibold">TF</div>
-                  <div className="font-semibold">Score</div>
-                  <div className="font-semibold">RR</div>
-                  <div className="font-semibold">Risco%</div>
+                  <div className="font-semibold text-center">Score</div>
+                  <div className="font-semibold text-right">RR</div>
+                  <div className="font-semibold text-right">Risco%</div>
                   <div className="font-semibold">Lado</div>
-                  <div className="font-semibold">Entrada</div>
-                  <div className="font-semibold">Stop</div>
-                  <div className="font-semibold">Alvo</div>
+                  <div className="font-semibold text-right">Entrada</div>
+                  <div className="font-semibold text-right">Stop</div>
+                  <div className="font-semibold text-right">Alvo</div>
                   <div className="font-semibold">Regime</div>
                   <div className="font-semibold">Qualidade</div>
                 </div>
