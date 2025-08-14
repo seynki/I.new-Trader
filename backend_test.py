@@ -13,6 +13,7 @@ class AITradingSystemTester:
         self.tests_passed = 0
         self.ws_messages = []
         self.ws_connected = False
+        self.notification_alerts_received = []
 
     def run_test(self, name, method, endpoint, expected_status, data=None, timeout=10):
         """Run a single API test"""
