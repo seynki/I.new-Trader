@@ -16,7 +16,6 @@ import {
   Zap,
   DollarSign,
   BarChart3,
-  Brain,
   Settings,
   PlayCircle,
   PauseCircle,
