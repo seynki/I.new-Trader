@@ -621,6 +621,42 @@ class NotificationManager:
         self.settings = new_settings
         logger.info(f"Notification settings updated: {new_settings.dict()}")
     
+    def create_trading_alert(self, signal: TradingSignal) -> TradingAlert:
+        """Cria um alerta de trading baseado no sinal"""
+        
+        # Determinar prioridade baseada no score
+        if signal.confidence_score >= 80:
+            priority = "high"
+        elif signal.confidence_score >= 70:
+            priority = "medium"
+        else:
+            priority = "low"
+        
+        # Criar título e mensagem
+        action_emoji = "🟢" if signal.signal_type == "BUY" else "🔴"
+        title = f"{action_emoji} {signal.signal_type} Signal - {signal.symbol}"
+        
+        message = (
+            f"Sinal {signal.signal_type} para {signal.symbol}\n"
+            f"Score: {signal.confidence_score}% | RR: {signal.risk_reward_ratio}:1\n"
+            f"Entrada: {signal.entry_price:.4f}\n"
+            f"Stop: {signal.stop_loss:.4f} | Alvo: {signal.take_profit:.4f}\n"
+            f"Justificativa: {signal.justification}"
+        )
+        
+        alert = TradingAlert(
+            id=str(uuid.uuid4()),
+            signal_id=signal.id,
+            alert_type="new_signal",
+            title=title,
+            message=message,
+            priority=priority,
+            timestamp=datetime.now(),
+            iq_option_ready=True
+        )
+        
+        return alert
+    
     def should_notify(self, signal: TradingSignal) -> bool:
         """Verifica se deve notificar baseado nas configurações"""
         if not self.settings.notifications_enabled:
