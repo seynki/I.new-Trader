@@ -105,6 +105,21 @@
 user_problem_statement: "Manter a bolinha verde em troca do cerebro verde atras do nome e deixar um design mais espaçoso para caber sem bugs como essas letras em cima das outras, com uma conta do iq option e fazer operaçoes ao vivo ou notificar ao vivo qual a melhor decisão"
 
 backend:
+  - task: "Signal Confidence Score >= 70 and Alert Correlation Testing"
+    implemented: true
+    working: false
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Comprehensive testing performed following exact review request requirements. System architecture working correctly but signals not reaching confidence_score >= 70 threshold."
+      - working: false
+        agent: "testing"
+        comment: "❌ TESTING RESULTS: Health endpoint ✅ (200 OK, healthy). Notification settings ✅ (min_score_threshold=70, notifications_enabled=true). Signal generation ✅ (every 8s, proper structure, RR>=1.5). Alert system ✅ (functional when threshold met). ISSUE: All 26 signals generated have confidence_score 60-66, none >= 70. Extended 60s polling confirmed no high-confidence signals. Alert correlation system working correctly - no alerts created because no signals meet 70+ threshold. Signal generation algorithm may need tuning to produce higher confidence scores."
+
   - task: "Notification System Implementation"
     implemented: true
     working: true
