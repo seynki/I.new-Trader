@@ -82,16 +82,50 @@ function App() {
     
     wsRef.current.onmessage = (event) => {
       const message = JSON.parse(event.data);
+      console.log('WebSocket message received:', message.type, message.data);
       
       if (message.type === 'market_update') {
         setMarketData(message.data);
         setLastUpdate(new Date());
       } else if (message.type === 'new_signal') {
-        setSignals(prev => [message.data, ...prev.slice(0, 19)]);
+        console.log('New signal received:', message.data);
+        setSignals(prev => {
+          // Evitar duplicatas baseado no ID e timestamp
+          const newSignal = {
+            ...message.data,
+            id: message.data.id || `signal_${Date.now()}_${Math.random()}`,
+            timestamp: message.data.timestamp || new Date().toISOString()
+          };
+          
+          // Verificar se já existe um sinal similar
+          const exists = prev.find(s => 
+            s.id === newSignal.id || 
+            (s.symbol === newSignal.symbol && 
+             Math.abs(new Date(s.timestamp || 0) - new Date(newSignal.timestamp)) < 5000)
+          );
+          
+          if (!exists) {
+            return [newSignal, ...prev.slice(0, 19)];
+          }
+          return prev;
+        });
       } else if (message.type === 'trading_alert') {
-        setAlerts(prev => [message.data, ...prev.slice(0, 9)]);
-        // Show notification toast or popup here
-        showTradingAlertNotification(message.data);
+        console.log('Trading alert received:', message.data);
+        setAlerts(prev => {
+          const newAlert = {
+            ...message.data,
+            id: message.data.id || `alert_${Date.now()}_${Math.random()}`
+          };
+          
+          // Verificar se já existe
+          const exists = prev.find(a => a.id === newAlert.id);
+          if (!exists) {
+            // Show notification toast or popup here
+            showTradingAlertNotification(newAlert);
+            return [newAlert, ...prev.slice(0, 9)];
+          }
+          return prev;
+        });
       }
     };
     
