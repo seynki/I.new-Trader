@@ -87,6 +87,10 @@ function App() {
         setLastUpdate(new Date());
       } else if (message.type === 'new_signal') {
         setSignals(prev => [message.data, ...prev.slice(0, 19)]);
+      } else if (message.type === 'trading_alert') {
+        setAlerts(prev => [message.data, ...prev.slice(0, 9)]);
+        // Show notification toast or popup here
+        showTradingAlertNotification(message.data);
       }
     };
     
