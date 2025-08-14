@@ -772,7 +772,10 @@ async def advanced_signal_monitoring_task():
                     # Salvar no banco
                     await db.signals.insert_one(signal.dict())
                     
-                    # Enviar para clientes conectados
+                    # Processar notificações
+                    await notification_manager.process_signal_notification(signal)
+                    
+                    # Enviar para clientes conectados via WebSocket
                     message = {
                         "type": "new_signal",
                         "data": signal.dict()
