@@ -31,7 +31,8 @@ import {
 } from 'lucide-react';
 import './App.css';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+// MUST use env var only (no hardcoding)
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 function App() {
   const [marketData, setMarketData] = useState([]);
@@ -52,9 +53,48 @@ function App() {
     timeframes: ["1m", "5m", "15m"]
   });
   const [iqOptionStatus, setIqOptionStatus] = useState(null);
+  const [stats, setStats] = useState({ scoreAvg: 0, maxScore: 0, rrAvg: 0, trending: 0 });
   const wsRef = useRef(null);
+  const audioCtxRef = useRef(null);
 
-  // Configuração do WebSocket
+  // Helpers: weekend and symbol types
+  const isWeekend = () => {
+    const d = new Date();
+    const day = d.getDay();
+    return day === 0 || day === 6; // Sunday or Saturday
+  };
+  const isForexPair = (symbol) => /^[A-Z]{6}$/.test(symbol || '');
+  const isCryptoSymbol = (symbol) => /USDT$/.test(symbol || '');
+
+  // Beep using WebAudio API
+  const playAlertBeep = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioCtx();
+      }
+      const ctx = audioCtxRef.current;
+      // Some browsers require resume after user interaction; try resume harmlessly
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880; // A5
+      gain.gain.setValueAtTime(0.001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    } catch (e) {
+      console.warn('Audio beep failed:', e);
+    }
+  };
+
+  // WebSocket setup
   useEffect(() => {
     if (isStreaming) {
       connectWebSocket();
@@ -62,6 +102,7 @@ function App() {
       disconnectWebSocket();
     }
     fetchInitialData();
+    fetchStats();
     
     return () => {
       if (wsRef.current) {
@@ -85,30 +126,33 @@ function App() {
       console.log('WebSocket message received:', message.type, message.data);
       
       if (message.type === 'market_update') {
-        setMarketData(message.data);
+        // Filter out removed assets just in case
+        const filtered = (message.data || []).filter(m => m.symbol !== 'SP500' &amp;&amp; m.symbol !== 'NAS100');
+        setMarketData(filtered);
         setLastUpdate(new Date());
       } else if (message.type === 'new_signal') {
         console.log('New signal received:', message.data);
         setSignals(prev => {
-          // Evitar duplicatas baseado no ID e timestamp
           const newSignal = {
             ...message.data,
             id: message.data.id || `signal_${Date.now()}_${Math.random()}`,
             timestamp: message.data.timestamp || new Date().toISOString()
           };
-          
-          // Verificar se já existe um sinal similar
+          // Filter removed assets
+          if (newSignal.symbol === 'SP500' || newSignal.symbol === 'NAS100') return prev;
+          // Prevent duplicates
           const exists = prev.find(s => 
             s.id === newSignal.id || 
-            (s.symbol === newSignal.symbol && 
-             Math.abs(new Date(s.timestamp || 0) - new Date(newSignal.timestamp)) < 5000)
+            (s.symbol === newSignal.symbol &amp;&amp; 
+             Math.abs(new Date(s.timestamp || 0) - new Date(newSignal.timestamp)) &lt; 5000)
           );
-          
           if (!exists) {
             return [newSignal, ...prev.slice(0, 19)];
           }
           return prev;
         });
+        // Update stats on every new signal
+        fetchStats();
       } else if (message.type === 'trading_alert') {
         console.log('Trading alert received:', message.data);
         setAlerts(prev => {
@@ -116,12 +160,10 @@ function App() {
             ...message.data,
             id: message.data.id || `alert_${Date.now()}_${Math.random()}`
           };
-          
-          // Verificar se já existe
           const exists = prev.find(a => a.id === newAlert.id);
           if (!exists) {
-            // Show notification toast or popup here
             showTradingAlertNotification(newAlert);
+            playAlertBeep();
             return [newAlert, ...prev.slice(0, 9)];
           }
           return prev;
@@ -158,11 +200,38 @@ function App() {
         axios.get(`${BACKEND_URL}/api/alerts?limit=10`)
       ]);
       
-      setMarketData(marketResponse.data.data);
-      setSignals(signalsResponse.data.signals);
-      setAlerts(alertsResponse.data.alerts);
+      // Filter out removed indices just in case
+      const md = (marketResponse.data.data || []).filter(m => m.symbol !== 'SP500' &amp;&amp; m.symbol !== 'NAS100');
+      const sigs = (signalsResponse.data.signals || []).filter(s => s.symbol !== 'SP500' &amp;&amp; s.symbol !== 'NAS100');
+
+      setMarketData(md);
+      setSignals(sigs);
+      setAlerts(alertsResponse.data.alerts || []);
     } catch (error) {
       console.error('Erro ao buscar dados iniciais:', error);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const { data } = await axios.get(`${BACKEND_URL}/api/stats`);
+      setStats({
+        scoreAvg: data.score_avg ?? 0,
+        maxScore: data.max_score ?? 0,
+        rrAvg: data.rr_avg ?? 0,
+        trending: data.trending_markets ?? 0,
+      });
+    } catch (e) {
+      console.warn('Falha ao buscar stats, usando cálculo local');
+      // Fallback: compute from local signals
+      if (signals.length &gt; 0) {
+        const sc = signals.map(s =&gt; s.confidence_score || 0);
+        const rr = signals.map(s =&gt; s.risk_reward_ratio || 0);
+        const avg = sc.reduce((a,b) =&gt; a + b, 0) / sc.length;
+        const max = Math.max(...sc);
+        const rrAvg = rr.reduce((a,b) =&gt; a + b, 0) / rr.length;
+        setStats({ scoreAvg: Math.round(avg), maxScore: max, rrAvg: Number(rrAvg.toFixed(2)), trending: 0 });
+      }
     }
   };
 
@@ -204,92 +273,66 @@ function App() {
   }, []);
 
   const formatPrice = (price, symbol) => {
-    if (!price) return '0.00';
-    
-    // Para números muito grandes (índices como US30, NAS100)
+    if (!price &amp;&amp; price !== 0) return '0.00';
     if (price >= 10000) {
       return Math.round(price).toLocaleString();
-    }
-    // Para preços médios (BTC, etc)
-    else if (price >= 1000) {
+    } else if (price >= 1000) {
       return Math.round(price).toLocaleString();
-    }
-    // Para preços forex (JPY, EUR, etc)
-    else if (price >= 100) {
+    } else if (price >= 100) {
       return price.toFixed(1);
-    }
-    else if (price >= 10) {
+    } else if (price >= 10) {
       return price.toFixed(2);
-    }
-    // Para preços muito pequenos
-    else {
+    } else {
       return price.toFixed(4);
     }
   };
 
-  // Função para formatar símbolos no estilo IQ Option
+  // IQ Option style symbol formatting
   const formatIQOptionSymbol = (symbol) => {
-    if (!symbol) return 'BTC/USD (OTC)';
-    
-    // Se termina com T (como BTCUSDT), remove o T e adiciona (OTC)
-    if (symbol.endsWith('T')) {
-      const base = symbol.slice(0, -1); // Remove o T
-      if (base.includes('USD')) {
-        // BTCUSD → BTC/USD
-        const crypto = base.replace('USD', '');
-        return `${crypto}/USD (OTC)`;
-      } else if (base.includes('USDT')) {
-        // BTCUSDT → BTC/USD (mas já foi removido o T)
-        const crypto = base.replace('USDT', '');
-        return `${crypto}/USD (OTC)`;
-      }
+    if (!symbol) return '—';
+
+    // Forex like EURUSD, USDJPY
+    if (isForexPair(symbol)) {
+      const base = symbol.slice(0, 3);
+      const quote = symbol.slice(3);
+      const suffix = isWeekend() ? ' (OTC)' : '';
+      return `${base}/${quote}${suffix}`;
     }
-    
-    // Outros formatos
-    if (symbol.includes('USDT')) {
-      const crypto = symbol.replace('USDT', '');
-      return `${crypto}/USD (OTC)`;
-    } else if (symbol.includes('USD')) {
-      const crypto = symbol.replace('USD', '');
-      return `${crypto}/USD (OTC)`;
+
+    // Crypto like BTCUSDT, ETHUSDT
+    if (symbol.endsWith('USDT')) {
+      const base = symbol.replace('USDT', '');
+      return `${base}/USD`;
     }
-    
+
+    // Symbols ending with USD but not 6 letters (rare here)
+    if (/USD$/.test(symbol) &amp;&amp; !isForexPair(symbol)) {
+      const base = symbol.replace('USD', '');
+      const suffix = isWeekend() ? ' (OTC)' : '';
+      return `${base}/USD${suffix}`;
+    }
+
+    // Indices like US30
+    if (/^[A-Z]{2}\d{2}$/.test(symbol)) {
+      const suffix = isWeekend() ? ' (OTC)' : '';
+      return `${symbol}${suffix}`;
+    }
+
     return symbol;
   };
 
-  // Função para obter sigla do símbolo para o ícone
+  // Abbreviation for small icon box
   const getSymbolShort = (symbol) => {
-    if (!symbol) return 'BTC';
-    
-    if (symbol.endsWith('T')) {
-      const base = symbol.slice(0, -1);
-      if (base.includes('USD')) {
-        return base.replace('USD', '').substring(0, 3);
-      }
-    }
-    
-    if (symbol.includes('USDT')) {
-      return symbol.replace('USDT', '').substring(0, 3);
-    } else if (symbol.includes('USD')) {
-      return symbol.replace('USD', '').substring(0, 3);
-    }
-    
+    if (!symbol) return '—';
+    if (isForexPair(symbol)) return symbol.slice(0, 3);
+    if (symbol.endsWith('USDT')) return symbol.replace('USDT', '').substring(0, 3);
+    if (symbol.endsWith('USD')) return symbol.replace('USD', '').substring(0, 3);
     return symbol.substring(0, 3);
   };
 
   const formatChange = (change) => {
     const sign = change >= 0 ? '+' : '';
-    return `${sign}${change.toFixed(2)}%`;
-  };
-
-  const getSignalTypeColor = (signalType) => {
-    return signalType === 'BUY' ? 'text-green-400' : 'text-red-400';
-  };
-
-  const getConfidenceColor = (score) => {
-    if (score >= 80) return 'text-green-400';
-    if (score >= 65) return 'text-yellow-400';
-    return 'text-red-400';
+    return `${sign}${(change ?? 0).toFixed(2)}%`;
   };
 
   const getModeConfig = (mode) => {
@@ -314,17 +357,6 @@ function App() {
       }
     };
     return configs[mode];
-  };
-
-  // Estatísticas simuladas
-  const stats = {
-    scoreAvg: 71,
-    maxScore: 72,
-    rrAvg: 2.33,
-    trending: 0,
-    riskMinimo: 1.15,
-    riscoPorTrade: 5,
-    limiteDiario: 3
   };
 
   return (
@@ -384,7 +416,7 @@ function App() {
                   ) : (
                     <BellOff className="h-4 w-4 text-gray-400" />
                   )}
-                  {alerts.length > 0 && (
+                  {alerts.length > 0 &amp;&amp; (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                       {alerts.length}
                     </span>
@@ -392,7 +424,7 @@ function App() {
                 </Button>
 
                 {/* Notifications Dropdown */}
-                {showNotifications && (
+                {showNotifications &amp;&amp; (
                   <div className="absolute right-0 top-12 w-80 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50">
                     <div className="p-4 border-b border-gray-700">
                       <h3 className="text-sm font-semibold text-green-400">Alertas de Trading</h3>
@@ -400,7 +432,7 @@ function App() {
                     <div className="max-h-64 overflow-y-auto">
                       {alerts.length > 0 ? (
                         alerts.slice(0, 5).map((alert, index) => (
-                          <div key={`${alert.id || 'alert'}-${index}-${Date.now()}`} className="p-3 border-b border-gray-800 hover:bg-gray-800/50">
+                          <div key={`${alert.id || 'alert'}-${index}`} className="p-3 border-b border-gray-800 hover:bg-gray-800/50">
                             <div className="flex items-start space-x-3">
                               <div className={`mt-1 w-2 h-2 rounded-full ${
                                 alert.priority === 'high' ? 'bg-red-400' : 
@@ -581,7 +613,10 @@ function App() {
                 
                 {/* Opportunities List */}
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {signals.slice(0, 10).map((signal, index) => (
+                  {signals
+                    .filter(s => s.symbol !== 'SP500' &amp;&amp; s.symbol !== 'NAS100')
+                    .slice(0, 10)
+                    .map((signal, index) => (
                     <div 
                       key={`${signal.id || 'signal'}-${index}-${signal.symbol || 'unknown'}`} 
                       className="grid grid-cols-12 gap-2 items-center bg-gray-800/30 rounded-lg p-3 hover:bg-gray-800/50 transition-colors border border-gray-700/30"
@@ -596,33 +631,33 @@ function App() {
                           </span>
                         </div>
                       </div>
-                      <div className="text-xs text-green-400 font-mono">{selectedTimeframe}</div>
+                      <div className="text-xs text-green-400 font-mono">{signal.timeframe || selectedTimeframe}</div>
                       <div className="flex items-center justify-center">
                         <div className="w-12 h-2 bg-gray-700 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-green-500 rounded-full transition-all duration-300"
-                            style={{ width: `${signal.confidence_score || 72}%` }}
+                            style={{ width: `${Math.max(0, Math.min(100, signal.confidence_score || 0))}%` }}
                           />
                         </div>
-                        <span className="text-xs text-green-400 font-mono ml-1 min-w-[1.5rem] text-center">{signal.confidence_score || 72}</span>
+                        <span className="text-xs text-green-400 font-mono ml-1 min-w-[1.5rem] text-center">{signal.confidence_score ?? '-'}</span>
                       </div>
-                      <div className="text-xs text-green-400 font-mono text-center">{signal.risk_reward_ratio || '2.30'}</div>
+                      <div className="text-xs text-green-400 font-mono text-center">{signal.risk_reward_ratio ?? '-'}</div>
                       <div className="text-xs text-blue-400 font-mono text-center">0.69</div>
                       <div className={`text-xs font-semibold ${signal.signal_type === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
                         {signal.signal_type === 'BUY' ? 'buy' : 'sell'}
                       </div>
-                      <div className="col-span-1 text-xs text-gray-300 font-mono text-right">{formatPrice(signal.entry_price || 114988.93, signal.symbol)}</div>
-                      <div className="col-span-1 text-xs text-red-400 font-mono text-right">{formatPrice(signal.stop_loss || 114965.91, signal.symbol)}</div>
-                      <div className="col-span-1 text-xs text-green-400 font-mono text-right">{formatPrice(signal.take_profit || 115053.58, signal.symbol)}</div>
+                      <div className="col-span-1 text-xs text-gray-300 font-mono text-right">{formatPrice(signal.entry_price, signal.symbol)}</div>
+                      <div className="col-span-1 text-xs text-red-400 font-mono text-right">{formatPrice(signal.stop_loss, signal.symbol)}</div>
+                      <div className="col-span-1 text-xs text-green-400 font-mono text-right">{formatPrice(signal.take_profit, signal.symbol)}</div>
                       <div className="text-xs">
-                        <div className="text-yellow-400 font-medium text-center">High-vol</div>
+                        <div className="text-yellow-400 font-medium text-center">{signal.regime || '—'}</div>
                         <div className="text-gray-400 text-center">EMA9/21</div>
                       </div>
-                      <div className="text-xs text-gray-400 text-center">normal</div>
+                      <div className="text-xs text-gray-400 text-center">{signal.quality || 'normal'}</div>
                     </div>
                   ))}
                   
-                  {signals.length === 0 && (
+                  {signals.length === 0 &amp;&amp; (
                     <div className="text-center py-8 text-gray-500">
                       <Target className="h-12 w-12 mx-auto mb-3 opacity-50" />
                       <p>Aguardando oportunidades...</p>
@@ -634,7 +669,7 @@ function App() {
             </Card>
           </div>
 
-          {/* Right Column - Notifications & Rules */}
+          {/* Right Column - Notifications &amp; Rules */}
           <div className="space-y-6">
             {/* IQ Option Status */}
             <Card className="bg-gray-900/50 border-gray-800/50 backdrop-blur-sm">
@@ -662,12 +697,15 @@ function App() {
                       )}
                       <span className="text-sm text-gray-300">{iqOptionStatus.message}</span>
                     </div>
-                    {iqOptionStatus.email && (
+                    {iqOptionStatus.email &amp;&amp; (
                       <div className="text-xs text-gray-400">
                         <span>Email: {iqOptionStatus.email}</span>
                       </div>
                     )}
-                    {iqOptionStatus.balance && (
+                    <div className="text-xs text-gray-400">
+                      <span>Conta: {iqOptionStatus.account_type ? iqOptionStatus.account_type.toUpperCase() : '—'}</span>
+                    </div>
+                    {typeof iqOptionStatus.balance !== 'undefined' &amp;&amp; (
                       <div className="text-xs text-gray-400">
                         <span>Saldo: ${iqOptionStatus.balance}</span>
                       </div>
@@ -717,7 +755,7 @@ function App() {
               </CardContent>
             </Card>
 
-            {/* Rules & Limits */}
+            {/* Rules &amp; Limits */}
             <Card className="bg-gray-900/50 border-gray-800/50 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-lg text-green-400">Regras e limites</CardTitle>
@@ -760,7 +798,7 @@ function App() {
                     <div className="text-gray-300">score=72 ema_cross=true breakout_conf=85%</div>
                   </div>
                   <div className="bg-gray-800/50 rounded p-2">
-                    <div className="text-yellow-400">00:57:42 - [Index SP500]</div>
+                    <div className="text-yellow-400">00:57:42 - [Index US30]</div>
                     <div className="text-gray-300">trend_change detected, volatility=high</div>
                   </div>
                 </div>
@@ -777,7 +815,9 @@ function App() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {marketData.map((market, index) => (
+                {marketData
+                  .filter(m => m.symbol !== 'SP500' &amp;&amp; m.symbol !== 'NAS100')
+                  .map((market, index) => (
                   <div key={`${market.symbol || 'market'}-${index}-${market.price || 0}`} className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/30">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-3">
