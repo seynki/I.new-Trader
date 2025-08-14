@@ -742,6 +742,7 @@ class NotificationManager:
 # Instâncias globais
 market_simulator = AdvancedMarketSimulator()
 signal_generator = AdvancedSignalGenerator()
+notification_manager = NotificationManager()
 active_connections: List[WebSocket] = []
 
 @app.on_event("startup")
