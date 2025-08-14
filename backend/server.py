@@ -606,6 +606,139 @@ class AdvancedSignalGenerator:
         
         return signal
 
+# Sistema de Notificações para IQ Option
+class NotificationManager:
+    def __init__(self):
+        self.settings = NotificationSettings()
+        self.active_alerts = []
+        self.iq_option_credentials = {
+            "email": "dannieloliveiragame@gmail.com",
+            "password": "21172313"
+        }
+        
+    def update_settings(self, new_settings: NotificationSettings):
+        """Atualiza as configurações de notificação"""
+        self.settings = new_settings
+        logger.info(f"Notification settings updated: {new_settings.dict()}")
+    
+    def should_notify(self, signal: TradingSignal) -> bool:
+        """Verifica se deve notificar baseado nas configurações"""
+        if not self.settings.notifications_enabled:
+            return False
+            
+        if signal.confidence_score < self.settings.min_score_threshold:
+            return False
+            
+        if signal.risk_reward_ratio < self.settings.min_rr_threshold:
+            return False
+            
+        # Verificar timeframe
+        if signal.timeframe not in self.settings.timeframes:
+            return False
+            
+        return True
+    
+    def create_trading_alert(self, signal: TradingSignal) -> TradingAlert:
+        """Cria um alerta de trading baseado no sinal"""
+        priority = "high" if signal.confidence_score >= 80 else "medium" if signal.confidence_score >= 70 else "low"
+        
+        title = f"🎯 {signal.signal_type} Signal - {signal.symbol}"
+        message = (
+            f"Oportunidade {signal.signal_type} detectada!\n"
+            f"Ativo: {signal.symbol}\n"
+            f"Score: {signal.confidence_score}%\n"
+            f"RR: {signal.risk_reward_ratio}:1\n"
+            f"Entrada: {signal.entry_price:.4f}\n"
+            f"Stop: {signal.stop_loss:.4f}\n"
+            f"Alvo: {signal.take_profit:.4f}\n"
+            f"Qualidade: {signal.quality}\n"
+            f"Regime: {signal.regime}"
+        )
+        
+        alert = TradingAlert(
+            id=str(uuid.uuid4()),
+            signal_id=signal.id,
+            alert_type="new_signal",
+            title=title,
+            message=message,
+            priority=priority,
+            timestamp=datetime.now(),
+            iq_option_ready=True
+        )
+        
+        return alert
+    
+    async def send_desktop_notification(self, alert: TradingAlert):
+        """Envia notificação desktop"""
+        try:
+            def show_notification():
+                notification.notify(
+                    title=alert.title,
+                    message=alert.message,
+                    timeout=10,
+                    app_name="TypeIA-Trading"
+                )
+            
+            # Executar em thread separada para não bloquear
+            thread = threading.Thread(target=show_notification)
+            thread.daemon = True
+            thread.start()
+            
+            logger.info(f"Desktop notification sent: {alert.title}")
+        except Exception as e:
+            logger.error(f"Error sending desktop notification: {e}")
+    
+    async def send_websocket_notification(self, alert: TradingAlert):
+        """Envia notificação via WebSocket"""
+        try:
+            message = {
+                "type": "trading_alert",
+                "data": alert.dict()
+            }
+            await broadcast_message(json.dumps(message, default=str))
+            logger.info(f"WebSocket notification sent: {alert.title}")
+        except Exception as e:
+            logger.error(f"Error sending WebSocket notification: {e}")
+    
+    async def process_signal_notification(self, signal: TradingSignal):
+        """Processa um sinal e envia notificações se necessário"""
+        if not self.should_notify(signal):
+            return
+            
+        alert = self.create_trading_alert(signal)
+        self.active_alerts.append(alert)
+        
+        # Salvar alerta no banco
+        try:
+            await db.alerts.insert_one(alert.dict())
+        except Exception as e:
+            logger.error(f"Error saving alert to database: {e}")
+        
+        # Enviar notificações baseado nas configurações
+        if "desktop" in self.settings.notification_types:
+            await self.send_desktop_notification(alert)
+            
+        if "websocket" in self.settings.notification_types:
+            await self.send_websocket_notification(alert)
+    
+    def get_iq_option_format(self, signal: TradingSignal) -> Dict:
+        """Formata o sinal para o formato IQ Option"""
+        return {
+            "asset": signal.symbol.replace("USDT", ""),
+            "action": signal.signal_type.lower(),
+            "amount": 10,  # Valor padrão
+            "expiration": 5,  # 5 minutos
+            "entry_price": signal.entry_price,
+            "stop_loss": signal.stop_loss,
+            "take_profit": signal.take_profit,
+            "confidence": signal.confidence_score,
+            "rr_ratio": signal.risk_reward_ratio,
+            "timeframe": signal.timeframe,
+            "regime": signal.regime,
+            "quality": signal.quality,
+            "justification": signal.justification
+        }
+
 # Instâncias globais
 market_simulator = AdvancedMarketSimulator()
 signal_generator = AdvancedSignalGenerator()
