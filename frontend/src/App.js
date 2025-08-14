@@ -349,13 +349,22 @@ function App() {
                       {alerts.length > 0 ? (
                         alerts.slice(0, 5).map((alert, index) => (
                           <div key={alert.id || index} className="p-3 border-b border-gray-800 hover:bg-gray-800/50">
-                            <div className="flex items-start space-x-2">
+                            <div className="flex items-start space-x-3">
                               <div className={`mt-1 w-2 h-2 rounded-full ${
                                 alert.priority === 'high' ? 'bg-red-400' : 
                                 alert.priority === 'medium' ? 'bg-yellow-400' : 'bg-blue-400'
                               }`} />
                               <div className="flex-1">
-                                <p className="text-xs font-medium text-gray-200">{alert.title}</p>
+                                <div className="flex items-center space-x-2 mb-1">
+                                  {alert.symbol && (
+                                    <div className="w-6 h-6 bg-black/40 backdrop-blur-sm border border-gray-600/30 rounded flex items-center justify-center text-xs font-bold text-green-400">
+                                      {getSymbolShort(alert.symbol)}
+                                    </div>
+                                  )}
+                                  <p className="text-xs font-medium text-gray-200">
+                                    {alert.symbol ? formatIQOptionSymbol(alert.symbol) : alert.title}
+                                  </p>
+                                </div>
                                 <p className="text-xs text-gray-400 mt-1">{alert.message?.substring(0, 100)}...</p>
                                 <p className="text-xs text-gray-500 mt-1">
                                   {new Date(alert.timestamp).toLocaleTimeString()}
