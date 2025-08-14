@@ -105,6 +105,18 @@
 user_problem_statement: "Manter a bolinha verde em troca do cerebro verde atras do nome e deixar um design mais espaçoso para caber sem bugs como essas letras em cima das outras, com uma conta do iq option e fazer operaçoes ao vivo ou notificar ao vivo qual a melhor decisão"
 
 backend:
+  - task: "Review Request Endpoint Testing"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - All 4 review request endpoints tested successfully. GET /api/stats returns score_avg (62), max_score (71), rr_avg (1.8), trending_markets (26) with 200 OK. GET /api/market-data returns data[] with 7 markets, correctly excludes SP500/NAS100. GET /api/signals?limit=5 returns signals[] with confidence_score and risk_reward_ratio fields, 200 OK. WebSocket /api/ws connects successfully, receives continuous market_update messages (4 in 5s), no forbidden symbols detected. All endpoints working without authentication as required."
+
   - task: "Notification System Implementation"
     implemented: true
     working: true
