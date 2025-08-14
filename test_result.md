@@ -231,10 +231,9 @@ metadata:
 
 test_plan:
   current_focus:
+    - "Real-time Opportunities and Trading Alerts Fix"
     - "WebSocket Streaming Fix and Number Formatting"
     - "IQ Option Symbol Format and Design Update"
-    - "Notification System Implementation"
-    - "IQ Option Integration (Notifications Only)"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
