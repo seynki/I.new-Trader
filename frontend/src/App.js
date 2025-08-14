@@ -36,12 +36,22 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001'
 function App() {
   const [marketData, setMarketData] = useState([]);
   const [signals, setSignals] = useState([]);
+  const [alerts, setAlerts] = useState([]);
   const [activeMode, setActiveMode] = useState('observador');
   const [isConnected, setIsConnected] = useState(false);
   const [isStreaming, setIsStreaming] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [selectedTimeframe, setSelectedTimeframe] = useState('1m');
   const [selectedAssets, setSelectedAssets] = useState('All');
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationSettings, setNotificationSettings] = useState({
+    notifications_enabled: true,
+    min_score_threshold: 70,
+    min_rr_threshold: 1.5,
+    notification_types: ["websocket"],
+    timeframes: ["1m", "5m", "15m"]
+  });
+  const [iqOptionStatus, setIqOptionStatus] = useState(null);
   const wsRef = useRef(null);
 
   // Configuração do WebSocket
