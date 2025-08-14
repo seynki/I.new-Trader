@@ -175,6 +175,18 @@ frontend:
         agent: "main"
         comment: "Improved spacing in opportunities table: increased gap from gap-2 to gap-3, padding from p-3 to p-4, increased icon size from w-8 h-8 to w-10 h-10, added font-mono classes for better readability, improved progress bar width and spacing."
 
+  - task: "IQ Option Symbol Format and Design Update"
+    implemented: true
+    working: "NA"
+    file: "App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented IQ Option symbol formatting (BTCUSDT → BTC/USD (OTC)). Changed symbol icons from orange background to black transparent (bg-black/40 backdrop-blur-sm). Improved number alignment to prevent overlapping. Applied to opportunities table, notifications, and market data sections. Added formatIQOptionSymbol() and getSymbolShort() functions for proper symbol handling."
+
   - task: "Notification System Frontend Integration"
     implemented: false
     working: "NA"
