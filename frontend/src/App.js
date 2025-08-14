@@ -175,10 +175,8 @@ function App() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-r from-green-500 to-green-600 rounded-lg">
-                  <Brain className="h-7 w-7 text-white" />
-                </div>
+              <div className="flex items-center space-x-4">
+                <div className="w-3 h-3 bg-green-500 rounded-full shadow-lg shadow-green-500/50 animate-pulse"></div>
                 <div>
                   <h1 className="text-xl font-bold text-green-400">
                     TypeIA-Trading
