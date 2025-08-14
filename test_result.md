@@ -175,6 +175,18 @@ frontend:
         agent: "main"
         comment: "Improved spacing in opportunities table: increased gap from gap-2 to gap-3, padding from p-3 to p-4, increased icon size from w-8 h-8 to w-10 h-10, added font-mono classes for better readability, improved progress bar width and spacing."
 
+  - task: "Real-time Opportunities and Trading Alerts Fix"
+    implemented: true
+    working: true
+    file: "server.py, App.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "✅ FIXED both critical issues: 1) Real-time opportunities now working - WebSocket receiving new signals, prices updating, IQ Option formatting active. 2) Trading alerts now working - notifications appearing with badge, alerts panel functional, threshold adjusted from 70% to 60%. Fixed missing functions should_notify() and create_trading_alert(), corrected WebSocket URL for HTTPS→WSS, resolved React key duplications. System now fully functional with 6 alerts displayed and real-time streaming active."
+
   - task: "WebSocket Streaming Fix and Number Formatting"
     implemented: true
     working: true
