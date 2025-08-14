@@ -358,7 +358,7 @@ function App() {
                       <div className="col-span-2 flex items-center space-x-2">
                         <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center text-xs font-bold text-white">
                           {signal.symbol?.substring(0, 3) || 'BTC'}
-                        div>
+                        </div>
                         <span className="text-sm text-gray-300">{signal.symbol?.replace('USDT', '/USDT') || 'BTC/USDT'}</span>
                       </div>
                       <div className="text-sm text-green-400">{selectedTimeframe}</div>
