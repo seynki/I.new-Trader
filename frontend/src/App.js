@@ -551,9 +551,9 @@ function App() {
                       <div className={`text-sm font-semibold ${signal.signal_type === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
                         {signal.signal_type === 'BUY' ? 'buy' : 'sell'}
                       </div>
-                      <div className="text-sm text-gray-300 font-mono">{formatPrice(signal.entry_price || 114988.93, signal.symbol)}</div>
-                      <div className="text-sm text-red-400 font-mono">{formatPrice(signal.stop_loss || 114965.91, signal.symbol)}</div>
-                      <div className="text-sm text-green-400 font-mono">{formatPrice(signal.take_profit || 115053.58, signal.symbol)}</div>
+                      <div className="text-sm text-gray-300 font-mono text-right">{formatPrice(signal.entry_price || 114988.93, signal.symbol)}</div>
+                      <div className="text-sm text-red-400 font-mono text-right">{formatPrice(signal.stop_loss || 114965.91, signal.symbol)}</div>
+                      <div className="text-sm text-green-400 font-mono text-right">{formatPrice(signal.take_profit || 115053.58, signal.symbol)}</div>
                       <div className="text-xs">
                         <div className="text-yellow-400 font-medium">High-vol</div>
                         <div className="text-gray-400">EMA9/21</div>
