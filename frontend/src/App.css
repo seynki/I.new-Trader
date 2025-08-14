@@ -1,7 +1,7 @@
-/* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Import Professional Trading Fonts */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* Base styles */
+/* Base styles with dark theme */
 * {
   margin: 0;
   padding: 0;
@@ -12,51 +12,39 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: #030712;
+  color: #f0fdf4;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
-/* Custom scrollbar */
+/* Monospace font for numbers and data */
+.mono {
+  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+}
+
+/* Custom scrollbar - Dark theme */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 4px;
+  background: #1f2937;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  background: #4b5563;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #6b7280;
 }
 
-/* Custom animations */
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes pulse {
+/* Professional trading animations */
+@keyframes pulse-green {
   0%, 100% {
     opacity: 1;
   }
@@ -65,75 +53,87 @@ body {
   }
 }
 
-/* Card hover effects */
-.card-hover {
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Trading card animations */
+.trading-card {
+  animation: fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.card-hover:hover {
+.trading-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
 }
 
-/* Glassmorphism effect */
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Custom progress bar animations */
-.progress-bar {
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Signal confidence colors */
-.confidence-high {
-  color: #059669;
-  background-color: #d1fae5;
-}
-
-.confidence-medium {
-  color: #d97706;
-  background-color: #fef3c7;
-}
-
-.confidence-low {
-  color: #dc2626;
-  background-color: #fee2e2;
-}
-
-/* Trading signal animations */
+/* Signal entry animation */
 .signal-new {
-  animation: slideInUp 0.5s ease-out;
+  animation: slideInFromRight 0.5s ease-out;
 }
 
-.signal-buy {
-  border-left: 4px solid #10b981;
-}
-
-.signal-sell {
-  border-left: 4px solid #ef4444;
-}
-
-/* Price movement animations */
+/* Price movement indicators */
 .price-up {
-  animation: pulse 1s ease-in-out;
-  color: #059669;
+  animation: pulse-green 1s ease-in-out;
+  color: #10b981;
 }
 
 .price-down {
-  animation: pulse 1s ease-in-out;
-  color: #dc2626;
+  animation: pulse-green 1s ease-in-out;
+  color: #ef4444;
 }
 
-/* WebSocket connection indicator */
-.connection-indicator {
+/* Professional glassmorphism effect */
+.glass-dark {
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(55, 65, 81, 0.3);
+}
+
+/* Advanced progress bar */
+.progress-enhanced {
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+/* Connection status indicator */
+.connection-status {
   position: relative;
 }
 
-.connection-indicator::before {
+.connection-status::before {
   content: '';
   position: absolute;
   width: 100%;
@@ -142,11 +142,11 @@ body {
   animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
-.connection-indicator.connected::before {
-  background-color: rgba(34, 197, 94, 0.4);
+.connection-status.connected::before {
+  background-color: rgba(16, 185, 129, 0.4);
 }
 
-.connection-indicator.disconnected::before {
+.connection-status.disconnected::before {
   background-color: rgba(239, 68, 68, 0.4);
 }
 
@@ -157,45 +157,92 @@ body {
   }
 }
 
-/* Custom button styles */
-.btn-gradient {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-  color: white;
-  transition: all 0.3s ease;
-}
-
-.btn-gradient:hover {
-  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-}
-
-/* Mode selector styles */
-.mode-selector {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(8px);
-  border-radius: 16px;
-  padding: 4px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
+/* Professional mode buttons */
 .mode-button {
-  transition: all 0.2s ease;
-  border-radius: 12px;
-  padding: 8px 16px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mode-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.mode-button:hover::before {
+  left: 100%;
 }
 
 .mode-button.active {
   transform: scale(1.02);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+/* Trading opportunity rows */
+.opportunity-row {
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.opportunity-row:hover {
+  background: rgba(31, 41, 55, 0.7);
+  border-left-color: #10b981;
+  transform: translateX(2px);
+}
+
+.opportunity-row.buy-signal {
+  border-left-color: #10b981;
+}
+
+.opportunity-row.sell-signal {
+  border-left-color: #ef4444;
+}
+
+/* Score progress bars */
+.score-bar {
+  background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #10b981 100%);
+  height: 8px;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.score-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+    width: 0%;
+  }
+  50% {
+    width: 100%;
+  }
+  100% {
+    transform: translateX(100%);
+    width: 0%;
+  }
 }
 
 /* Market data grid */
 .market-grid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
 
 @media (max-width: 768px) {
@@ -204,18 +251,90 @@ body {
   }
 }
 
-/* Signal card styles */
-.signal-card {
-  border-radius: 16px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
+/* Professional number formatting */
+.trading-number {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
-.signal-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+/* Loading states for trading data */
+.loading-skeleton {
+  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+  background-size: 200% 100%;
+  animation: loading-shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes loading-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Enhanced focus states for accessibility */
+button:focus,
+input:focus,
+select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.4);
+  border-color: #10b981;
+}
+
+/* Status indicators */
+.status-active {
+  color: #10b981;
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+.status-inactive {
+  color: #6b7280;
+}
+
+.status-warning {
+  color: #f59e0b;
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+}
+
+.status-danger {
+  color: #ef4444;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+/* Professional log entries */
+.log-entry {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 8px 12px;
+  margin: 2px 0;
+  border-radius: 6px;
+  border-left: 3px solid;
+  background: rgba(31, 41, 55, 0.5);
+  transition: background 0.2s ease;
+}
+
+.log-entry:hover {
+  background: rgba(31, 41, 55, 0.8);
+}
+
+.log-entry.success {
+  border-left-color: #10b981;
+}
+
+.log-entry.info {
+  border-left-color: #3b82f6;
+}
+
+.log-entry.warning {
+  border-left-color: #f59e0b;
+}
+
+.log-entry.error {
+  border-left-color: #ef4444;
 }
 
 /* Responsive typography */
@@ -227,64 +346,17 @@ body {
   .text-lg {
     font-size: 1.125rem;
   }
-}
-
-/* Loading states */
-.loading-skeleton {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
-}
-
-@keyframes loading {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-/* Error states */
-.error-state {
-  color: #dc2626;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 12px;
-  animation: slideInUp 0.3s ease-out;
-}
-
-/* Success states */
-.success-state {
-  color: #059669;
-  background-color: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  border-radius: 8px;
-  padding: 12px;
-  animation: slideInUp 0.3s ease-out;
-}
-
-/* Custom focus styles */
-button:focus,
-input:focus,
-select:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-}
-
-/* Print styles */
-@media print {
-  .no-print {
-    display: none !important;
+  
+  .trading-number {
+    font-size: 0.875rem;
   }
 }
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
-  .glass {
-    background: rgba(255, 255, 255, 0.95);
-    border: 2px solid #000;
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.95);
+    border: 2px solid #10b981;
   }
 }
 
@@ -295,4 +367,56 @@ select:focus {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Professional terminal-like styling */
+.terminal-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #10b981;
+  text-shadow: 0 0 5px rgba(16, 185, 129, 0.3);
+}
+
+/* Enhanced table styles */
+.trading-table {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.trading-table th {
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 10px;
+}
+
+.trading-table td {
+  font-family: 'JetBrains Mono', monospace;
+  color: #e5e7eb;
+}
+
+/* Custom switches and controls */
+.switch-enhanced {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.switch-enhanced:checked {
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+/* Professional card shadows */
+.card-professional {
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.card-professional:hover {
+  box-shadow: 
+    0 10px 25px rgba(0, 0, 0, 0.4),
+    0 4px 10px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }

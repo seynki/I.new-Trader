@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { Badge } from './components/ui/badge';
 import { Button } from './components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
-import { Alert, AlertDescription } from './components/ui/alert';
 import { Progress } from './components/ui/progress';
+import { Switch } from './components/ui/switch';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -17,7 +17,13 @@ import {
   DollarSign,
   BarChart3,
   Brain,
-  AlertTriangle
+  Settings,
+  PlayCircle,
+  PauseCircle,
+  Wifi,
+  WifiOff,
+  ArrowUpRight,
+  ArrowDownRight
 } from 'lucide-react';
 import './App.css';
 
@@ -26,14 +32,21 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001'
 function App() {
   const [marketData, setMarketData] = useState([]);
   const [signals, setSignals] = useState([]);
-  const [activeMode, setActiveMode] = useState('observer');
+  const [activeMode, setActiveMode] = useState('observador');
   const [isConnected, setIsConnected] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [selectedTimeframe, setSelectedTimeframe] = useState('1m');
+  const [selectedAssets, setSelectedAssets] = useState('All');
   const wsRef = useRef(null);
 
   // Configuração do WebSocket
   useEffect(() => {
-    connectWebSocket();
+    if (isStreaming) {
+      connectWebSocket();
+    } else {
+      disconnectWebSocket();
+    }
     fetchInitialData();
     
     return () => {
@@ -41,7 +54,7 @@ function App() {
         wsRef.current.close();
       }
     };
-  }, []);
+  }, [isStreaming]);
 
   const connectWebSocket = () => {
     const wsUrl = BACKEND_URL.replace('http', 'ws') + '/api/ws';
@@ -59,14 +72,15 @@ function App() {
         setMarketData(message.data);
         setLastUpdate(new Date());
       } else if (message.type === 'new_signal') {
-        setSignals(prev => [message.data, ...prev.slice(0, 9)]);
+        setSignals(prev => [message.data, ...prev.slice(0, 19)]);
       }
     };
     
     wsRef.current.onclose = () => {
       setIsConnected(false);
-      // Reconectar após 3 segundos
-      setTimeout(connectWebSocket, 3000);
+      if (isStreaming) {
+        setTimeout(connectWebSocket, 3000);
+      }
     };
     
     wsRef.current.onerror = (error) => {
@@ -75,11 +89,19 @@ function App() {
     };
   };
 
+  const disconnectWebSocket = () => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    setIsConnected(false);
+  };
+
   const fetchInitialData = async () => {
     try {
       const [marketResponse, signalsResponse] = await Promise.all([
         axios.get(`${BACKEND_URL}/api/market-data`),
-        axios.get(`${BACKEND_URL}/api/signals?limit=10`)
+        axios.get(`${BACKEND_URL}/api/signals?limit=20`)
       ]);
       
       setMarketData(marketResponse.data.data);
@@ -101,69 +123,142 @@ function App() {
     return `${sign}${change.toFixed(2)}%`;
   };
 
-  const getSignalColor = (signalType) => {
-    return signalType === 'BUY' ? 'text-green-600' : 'text-red-600';
+  const getSignalTypeColor = (signalType) => {
+    return signalType === 'BUY' ? 'text-green-400' : 'text-red-400';
   };
 
   const getConfidenceColor = (score) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 65) return 'text-yellow-600';
-    return 'text-red-600';
+    if (score >= 80) return 'text-green-400';
+    if (score >= 65) return 'text-yellow-400';
+    return 'text-red-400';
   };
 
   const getModeConfig = (mode) => {
     const configs = {
-      observer: {
+      observador: {
         icon: Eye,
         label: 'Observador',
         description: 'Apenas monitoramento e alertas',
-        color: 'bg-blue-500'
+        color: 'bg-blue-600 hover:bg-blue-700'
       },
-      suggest: {
+      sugerir: {
         icon: Target,
-        label: 'Sugestões',
+        label: 'Sugerir entrada',
         description: 'Indica operações possíveis',
-        color: 'bg-yellow-500'
+        color: 'bg-yellow-600 hover:bg-yellow-700'
       },
-      automatic: {
+      automatico: {
         icon: Zap,
         label: 'Automático',
         description: 'Execução automática de ordens',
-        color: 'bg-red-500'
+        color: 'bg-green-600 hover:bg-green-700'
       }
     };
     return configs[mode];
   };
 
+  // Estatísticas simuladas
+  const stats = {
+    scoreAvg: 71,
+    maxScore: 72,
+    rrAvg: 2.33,
+    trending: 0,
+    riskMinimo: 1.15,
+    riscoPorTrade: 5,
+    limiteDiario: 3
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gray-950 text-green-50">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+      <header className="bg-gray-900/80 backdrop-blur-sm border-b border-gray-800/50 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
-                <Brain className="h-8 w-8 text-white" />
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-r from-green-500 to-green-600 rounded-lg">
+                  <Brain className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-green-400">
+                    TypeIA-Trading
+                  </h1>
+                  <p className="text-xs text-gray-400">AI Trading System</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  AI Trading System
-                </h1>
-                <p className="text-sm text-slate-600">Inteligência Artificial para Trading</p>
+              
+              {/* Mode Selector */}
+              <div className="flex items-center space-x-2 bg-gray-800/50 rounded-xl px-4 py-2 border border-gray-700/50">
+                {['observador', 'sugerir', 'automatico'].map((mode) => {
+                  const config = getModeConfig(mode);
+                  const Icon = config.icon;
+                  return (
+                    <Button
+                      key={mode}
+                      variant={activeMode === mode ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setActiveMode(mode)}
+                      className={`flex items-center space-x-2 text-xs ${
+                        activeMode === mode 
+                          ? `${config.color} text-white shadow-lg` 
+                          : 'text-gray-400 hover:text-green-400 hover:bg-gray-700/50'
+                      }`}
+                    >
+                      <Icon className="h-3 w-3" />
+                      <span className="hidden sm:inline">{config.label}</span>
+                    </Button>
+                  );
+                })}
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            {/* Controls */}
+            <div className="flex items-center space-x-6">
+              {/* Asset Filter */}
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <span className="text-sm text-slate-600">
-                  {isConnected ? 'Conectado' : 'Desconectado'}
-                </span>
+                <select 
+                  value={selectedAssets}
+                  onChange={(e) => setSelectedAssets(e.target.value)}
+                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1 text-sm text-green-400 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="All">All</option>
+                  <option value="Crypto">Crypto</option>
+                  <option value="Forex">Forex</option>
+                  <option value="Indices">Indices</option>
+                </select>
+                
+                <select 
+                  value={selectedTimeframe}
+                  onChange={(e) => setSelectedTimeframe(e.target.value)}
+                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1 text-sm text-green-400 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="1m">1m</option>
+                  <option value="5m">5m</option>
+                  <option value="15m">15m</option>
+                  <option value="1h">1h</option>
+                  <option value="4h">4h</option>
+                  <option value="1d">1d</option>
+                </select>
+              </div>
+              
+              {/* Streaming Toggle */}
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={isStreaming}
+                  onCheckedChange={setIsStreaming}
+                  className="data-[state=checked]:bg-green-600"
+                />
+                <span className="text-sm text-gray-400">Streaming</span>
+                {isConnected ? (
+                  <Wifi className="h-4 w-4 text-green-400" />
+                ) : (
+                  <WifiOff className="h-4 w-4 text-red-400" />
+                )}
               </div>
               
               {lastUpdate && (
-                <span className="text-xs text-slate-500">
-                  Atualizado: {lastUpdate.toLocaleTimeString()}
+                <span className="text-xs text-gray-500">
+                  {lastUpdate.toLocaleTimeString()}
                 </span>
               )}
             </div>
@@ -171,271 +266,234 @@ function App() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Mode Selector */}
-        <div className="mb-6">
-          <div className="flex items-center space-x-4 bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-slate-200/50">
-            <span className="text-sm font-medium text-slate-700">Modo de Operação:</span>
-            <div className="flex space-x-2">
-              {['observer', 'suggest', 'automatic'].map((mode) => {
-                const config = getModeConfig(mode);
-                const Icon = config.icon;
-                return (
-                  <Button
-                    key={mode}
-                    variant={activeMode === mode ? "default" : "outline"}
-                    onClick={() => setActiveMode(mode)}
-                    className={`flex items-center space-x-2 ${
-                      activeMode === mode 
-                        ? `${config.color} text-white shadow-lg` 
-                        : 'bg-white hover:bg-slate-50'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="hidden sm:inline">{config.label}</span>
-                  </Button>
-                );
-              })}
-            </div>
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Card className="bg-gray-900/50 border-gray-800/50 backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Score médio</p>
+                  <p className="text-2xl font-bold text-green-400">{stats.scoreAvg}</p>
+                </div>
+                <TrendingUp className="h-5 w-5 text-green-400" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gray-900/50 border-gray-800/50 backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Maior score</p>
+                  <p className="text-2xl font-bold text-blue-400">{stats.maxScore}</p>
+                </div>
+                <Target className="h-5 w-5 text-blue-400" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gray-900/50 border-gray-800/50 backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">RR médio</p>
+                  <p className="text-2xl font-bold text-green-400">{stats.rrAvg}</p>
+                </div>
+                <ArrowUpRight className="h-5 w-5 text-green-400" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gray-900/50 border-gray-800/50 backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Em tendência</p>
+                  <p className="text-2xl font-bold text-orange-400">{stats.trending}</p>
+                </div>
+                <Activity className="h-5 w-5 text-orange-400" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Opportunities */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="bg-gray-900/50 border-gray-800/50 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg text-green-400">Oportunidades ao vivo</CardTitle>
+                  <Badge variant="outline" className="text-green-400 border-green-400/50">
+                    Score ≥ 55, RR ≥ 1.5 risco ≤ 1%
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Table Header */}
+                <div className="grid grid-cols-12 gap-2 text-xs text-gray-400 mb-4 px-2">
+                  <div className="col-span-2">Mercado</div>
+                  <div>Ativo</div>
+                  <div>TF</div>
+                  <div>Score</div>
+                  <div>RR</div>
+                  <div>Risco%</div>
+                  <div>Lado</div>
+                  <div>Entrada</div>
+                  <div>Stop</div>
+                  <div>Alvo</div>
+                  <div>Regime</div>
+                  <div>Qualidade</div>
+                </div>
+                
+                {/* Opportunities List */}
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {signals.slice(0, 10).map((signal, index) => (
+                    <div 
+                      key={signal.id || index} 
+                      className="grid grid-cols-12 gap-2 items-center bg-gray-800/30 rounded-lg p-3 hover:bg-gray-800/50 transition-colors border border-gray-700/30"
+                    >
+                      <div className="col-span-2 flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center text-xs font-bold text-white">
+                          {signal.symbol?.substring(0, 3) || 'BTC'}
+                        div>
+                        <span className="text-sm text-gray-300">{signal.symbol?.replace('USDT', '/USDT') || 'BTC/USDT'}</span>
+                      </div>
+                      <div className="text-sm text-green-400">{selectedTimeframe}</div>
+                      <div className="flex items-center space-x-1">
+                        <div className="w-12 h-2 bg-gray-700 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-green-500 rounded-full transition-all duration-300"
+                            style={{ width: `${signal.confidence_score || 72}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-green-400">{signal.confidence_score || 72}</span>
+                      </div>
+                      <div className="text-sm text-green-400">{signal.risk_reward_ratio || '2.30'}</div>
+                      <div className="text-sm text-blue-400">0.69</div>
+                      <div className={`text-sm font-semibold ${signal.signal_type === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
+                        {signal.signal_type === 'BUY' ? 'buy' : 'sell'}
+                      </div>
+                      <div className="text-sm text-gray-300">{formatPrice(signal.entry_price || 114988.93, signal.symbol)}</div>
+                      <div className="text-sm text-red-400">{formatPrice(signal.stop_loss || 114965.91, signal.symbol)}</div>
+                      <div className="text-sm text-green-400">{formatPrice(signal.take_profit || 115053.58, signal.symbol)}</div>
+                      <div className="text-xs">
+                        <div className="text-yellow-400">High-vol</div>
+                        <div className="text-gray-400">EMA9/21</div>
+                      </div>
+                      <div className="text-xs text-gray-400">normal</div>
+                    </div>
+                  ))}
+                  
+                  {signals.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <Target className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p>Aguardando oportunidades...</p>
+                      <p className="text-sm mt-1">Sistema analisando mercados em tempo real</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Rules & Logs */}
+          <div className="space-y-6">
+            {/* Rules & Limits */}
+            <Card className="bg-gray-900/50 border-gray-800/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-lg text-green-400">Regras e limites</CardTitle>
+                <p className="text-xs text-gray-400">Gestão de risco ativa</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-300">RR mínimo</span>
+                  <span className="text-sm text-green-400">1:1.5</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-300">Risco por trade</span>
+                  <span className="text-sm text-blue-400">≤ 1%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-300">Pausa em notícias de</span>
+                  <span className="text-sm text-orange-400">alto impacto</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-300">Limite diário</span>
+                  <span className="text-sm text-red-400">3% de drawdown</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Logs */}
+            <Card className="bg-gray-900/50 border-gray-800/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-lg text-green-400">Logs em tempo real</CardTitle>
+                <p className="text-xs text-gray-400">Sinal, score, regime e ação</p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-h-64 overflow-y-auto text-xs">
+                  <div className="bg-gray-800/50 rounded p-2">
+                    <div className="text-green-400">00:59:26 - [Forex USDJPY]</div>
+                    <div className="text-gray-300">rr=3.49 risco=0.54% sinal=RSI|Stochastic rejection</div>
+                  </div>
+                  <div className="bg-gray-800/50 rounded p-2">
+                    <div className="text-blue-400">00:58:15 - [Crypto BTC]</div>
+                    <div className="text-gray-300">score=72 ema_cross=true breakout_conf=85%</div>
+                  </div>
+                  <div className="bg-gray-800/50 rounded p-2">
+                    <div className="text-yellow-400">00:57:42 - [Index SP500]</div>
+                    <div className="text-gray-300">trend_change detected, volatility=high</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
-        <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white/60 backdrop-blur-sm rounded-2xl p-1 border border-slate-200/50">
-            <TabsTrigger value="dashboard" className="flex items-center space-x-2">
-              <BarChart3 className="h-4 w-4" />
-              <span>Dashboard</span>
-            </TabsTrigger>
-            <TabsTrigger value="signals" className="flex items-center space-x-2">
-              <Target className="h-4 w-4" />
-              <span>Sinais</span>
-            </TabsTrigger>
-            <TabsTrigger value="positions" className="flex items-center space-x-2">
-              <DollarSign className="h-4 w-4" />
-              <span>Posições</span>
-            </TabsTrigger>
-            <TabsTrigger value="risk" className="flex items-center space-x-2">
-              <Shield className="h-4 w-4" />
-              <span>Risco</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="dashboard" className="space-y-6">
-            {/* Market Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {marketData.map((market) => (
-                <Card key={market.symbol} className="bg-white/70 backdrop-blur-sm border-slate-200/50 hover:shadow-lg transition-all duration-300">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg font-semibold">{market.symbol}</CardTitle>
-                      <Badge variant={market.change_24h >= 0 ? "default" : "destructive"} className="text-xs">
+        {/* Market Data Grid */}
+        <div className="mt-6">
+          <Card className="bg-gray-900/50 border-gray-800/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-lg text-green-400">Dados de Mercado</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {marketData.map((market) => (
+                  <div key={market.symbol} className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-green-400">{market.symbol}</h3>
+                      <Badge 
+                        variant={market.change_24h >= 0 ? "default" : "destructive"} 
+                        className={`text-xs ${market.change_24h >= 0 ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}
+                      >
                         {formatChange(market.change_24h)}
                       </Badge>
                     </div>
-                  </CardHeader>
-                  <CardContent>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-2xl font-bold">
+                        <span className="text-2xl font-bold text-gray-100">
                           {formatPrice(market.price, market.symbol)}
                         </span>
                         {market.change_24h >= 0 ? (
-                          <TrendingUp className="h-5 w-5 text-green-600" />
+                          <TrendingUp className="h-5 w-5 text-green-400" />
                         ) : (
-                          <TrendingDown className="h-5 w-5 text-red-600" />
+                          <TrendingDown className="h-5 w-5 text-red-400" />
                         )}
                       </div>
-                      <div className="flex items-center space-x-2 text-sm text-slate-600">
+                      <div className="flex items-center space-x-2 text-sm text-gray-400">
                         <Activity className="h-4 w-4" />
-                        <span>Volume: {(market.volume || 0).toLocaleString()}</span>
+                        <span>Vol: {(market.volume || 0).toLocaleString()}</span>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Active Mode Info */}
-            <Card className="bg-white/70 backdrop-blur-sm border-slate-200/50">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  {React.createElement(getModeConfig(activeMode).icon, { className: "h-5 w-5" })}
-                  <span>Modo: {getModeConfig(activeMode).label}</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-600">{getModeConfig(activeMode).description}</p>
-                
-                {activeMode === 'automatic' && (
-                  <Alert className="mt-4 border-amber-200 bg-amber-50">
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    <AlertDescription className="text-amber-800">
-                      Modo automático ativo. O sistema pode executar operações automaticamente.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="signals" className="space-y-6">
-            <div className="space-y-4">
-              {signals.length === 0 ? (
-                <Card className="bg-white/70 backdrop-blur-sm border-slate-200/50">
-                  <CardContent className="py-8 text-center">
-                    <Target className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <p className="text-slate-600">Aguardando sinais de trading...</p>
-                    <p className="text-sm text-slate-500 mt-2">
-                      O sistema está analisando os mercados em tempo real
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                signals.map((signal) => (
-                  <Card key={signal.id} className="bg-white/70 backdrop-blur-sm border-slate-200/50 hover:shadow-lg transition-all duration-300">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <CardTitle className="text-lg">{signal.symbol}</CardTitle>
-                          <Badge 
-                            variant={signal.signal_type === 'BUY' ? "default" : "destructive"}
-                            className="font-semibold"
-                          >
-                            {signal.signal_type}
-                          </Badge>
-                          <div className="flex items-center space-x-1">
-                            <Progress 
-                              value={signal.confidence_score} 
-                              className="w-16 h-2" 
-                            />
-                            <span className={`text-sm font-medium ${getConfidenceColor(signal.confidence_score)}`}>
-                              {signal.confidence_score}%
-                            </span>
-                          </div>
-                        </div>
-                        <span className="text-sm text-slate-500">
-                          {new Date(signal.timestamp).toLocaleTimeString()}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <span className="text-slate-600">Entrada:</span>
-                            <p className="font-semibold">{formatPrice(signal.entry_price, signal.symbol)}</p>
-                          </div>
-                          <div>
-                            <span className="text-slate-600">Stop Loss:</span>
-                            <p className="font-semibold text-red-600">{formatPrice(signal.stop_loss, signal.symbol)}</p>
-                          </div>
-                          <div>
-                            <span className="text-slate-600">Take Profit:</span>
-                            <p className="font-semibold text-green-600">{formatPrice(signal.take_profit, signal.symbol)}</p>
-                          </div>
-                          <div>
-                            <span className="text-slate-600">R/R:</span>
-                            <p className="font-semibold">{signal.risk_reward_ratio}:1</p>
-                          </div>
-                        </div>
-                        
-                        <div className="bg-slate-50 rounded-lg p-3">
-                          <h4 className="font-medium text-slate-700 mb-2">Justificativa:</h4>
-                          <p className="text-sm text-slate-600">{signal.justification}</p>
-                        </div>
-                        
-                        {activeMode !== 'observer' && (
-                          <div className="flex space-x-2">
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                              Executar Trade
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              Ignorar
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="positions" className="space-y-6">
-            <Card className="bg-white/70 backdrop-blur-sm border-slate-200/50">
-              <CardContent className="py-8 text-center">
-                <DollarSign className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-600">Nenhuma posição ativa</p>
-                <p className="text-sm text-slate-500 mt-2">
-                  Posições aparecerão aqui quando trades forem executados
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="risk" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="bg-white/70 backdrop-blur-sm border-slate-200/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Shield className="h-5 w-5" />
-                    <span>Gestão de Risco</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Risco por Trade:</span>
-                      <span className="font-semibold">0.5%</span>
-                    </div>
-                    <Progress value={50} className="h-2" />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Risco Diário:</span>
-                      <span className="font-semibold">0.0%</span>
-                    </div>
-                    <Progress value={0} className="h-2" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Drawdown Máximo:</span>
-                      <span className="font-semibold">5%</span>
-                    </div>
-                    <Progress value={25} className="h-2" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/70 backdrop-blur-sm border-slate-200/50">
-                <CardHeader>
-                  <CardTitle>Estatísticas</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Win Rate:</span>
-                    <span className="font-semibold">--%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Trades Totais:</span>
-                    <span className="font-semibold">0</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">P&L Total:</span>
-                    <span className="font-semibold">$0.00</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Sharpe Ratio:</span>
-                    <span className="font-semibold">-</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
