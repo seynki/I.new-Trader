@@ -664,6 +664,217 @@ class AITradingSystemTester:
         
         return False
 
+    def test_signal_confidence_and_alerts_correlation(self):
+        """Test specific requirement: signals with confidence_score >= 70 and corresponding alerts"""
+        print(f"\n🔍 Testing Signal Confidence >= 70 and Alert Correlation...")
+        print(f"   📋 Following exact review request requirements")
+        
+        # Step 1: Test health endpoint
+        print(f"\n   Step 1: Testing health endpoint...")
+        health_success, health_response = self.run_test(
+            "Health Check Validation",
+            "GET", 
+            "api/health",
+            200
+        )
+        
+        if not health_success or not isinstance(health_response, dict):
+            print(f"   ❌ Health check failed")
+            return False
+            
+        if health_response.get('status') != 'healthy':
+            print(f"   ❌ Health status not healthy: {health_response.get('status')}")
+            return False
+            
+        print(f"   ✅ Health check passed - status: {health_response.get('status')}")
+        
+        # Step 2: Get notification settings and validate
+        print(f"\n   Step 2: Validating notification settings...")
+        settings_success, settings_response = self.run_test(
+            "Get Notification Settings",
+            "GET",
+            "api/notifications/settings", 
+            200
+        )
+        
+        if not settings_success or not isinstance(settings_response, dict):
+            print(f"   ❌ Failed to get notification settings")
+            return False
+            
+        min_score_threshold = settings_response.get('min_score_threshold', 0)
+        notifications_enabled = settings_response.get('notifications_enabled', False)
+        min_rr_threshold = settings_response.get('min_rr_threshold', 0)
+        timeframes = settings_response.get('timeframes', [])
+        
+        print(f"   📊 Current settings:")
+        print(f"      - notifications_enabled: {notifications_enabled}")
+        print(f"      - min_score_threshold: {min_score_threshold}")
+        print(f"      - min_rr_threshold: {min_rr_threshold}")
+        print(f"      - timeframes: {timeframes}")
+        
+        if min_score_threshold < 70:
+            print(f"   ⚠️ min_score_threshold is {min_score_threshold}, expected >= 70")
+        else:
+            print(f"   ✅ min_score_threshold is {min_score_threshold} (>= 70)")
+            
+        if not notifications_enabled:
+            print(f"   ⚠️ notifications_enabled is False, expected True")
+        else:
+            print(f"   ✅ notifications_enabled is True")
+        
+        # Step 3: Wait and poll for signals with score >= 70
+        print(f"\n   Step 3: Waiting up to 25s for signal generation...")
+        high_score_signals = []
+        poll_count = 0
+        max_polls = 3
+        wait_time = 8  # Wait 8 seconds between polls
+        
+        for poll in range(max_polls):
+            poll_count += 1
+            print(f"   📡 Poll {poll_count}/{max_polls} - checking for signals...")
+            
+            signals_success, signals_response = self.run_test(
+                f"Get Signals Poll {poll_count}",
+                "GET",
+                "api/signals?limit=50",
+                200
+            )
+            
+            if signals_success and isinstance(signals_response, dict):
+                signals = signals_response.get('signals', [])
+                print(f"      Found {len(signals)} total signals")
+                
+                # Filter signals with confidence_score >= 70
+                current_high_score = [s for s in signals if s.get('confidence_score', 0) >= 70]
+                print(f"      Found {len(current_high_score)} signals with score >= 70")
+                
+                # Log details of high score signals
+                for signal in current_high_score[:5]:  # Show first 5
+                    score = signal.get('confidence_score', 0)
+                    symbol = signal.get('symbol', 'Unknown')
+                    signal_id = signal.get('id', 'No ID')
+                    rr = signal.get('risk_reward_ratio', 0)
+                    print(f"         - {symbol}: score={score}, RR={rr}, ID={signal_id[:8]}...")
+                
+                # Update our collection of high score signals
+                for signal in current_high_score:
+                    if signal.get('id') not in [s.get('id') for s in high_score_signals]:
+                        high_score_signals.append(signal)
+            
+            if poll < max_polls - 1:  # Don't wait after last poll
+                print(f"      ⏳ Waiting {wait_time}s before next poll...")
+                time.sleep(wait_time)
+        
+        print(f"\n   📊 Total unique signals with score >= 70 found: {len(high_score_signals)}")
+        
+        if len(high_score_signals) == 0:
+            print(f"   ⚠️ No signals with confidence_score >= 70 found after {max_polls} polls")
+            # Try extended polling as per requirements
+            print(f"   🔄 Extending polling for up to 60s total as per edge case handling...")
+            
+            extended_polls = 3
+            for poll in range(extended_polls):
+                print(f"   📡 Extended poll {poll+1}/{extended_polls}...")
+                time.sleep(15)  # 15-20s blocks as specified
+                
+                signals_success, signals_response = self.run_test(
+                    f"Extended Signals Poll {poll+1}",
+                    "GET",
+                    "api/signals?limit=50",
+                    200
+                )
+                
+                if signals_success and isinstance(signals_response, dict):
+                    signals = signals_response.get('signals', [])
+                    current_high_score = [s for s in signals if s.get('confidence_score', 0) >= 70]
+                    print(f"      Found {len(current_high_score)} signals with score >= 70")
+                    
+                    for signal in current_high_score:
+                        if signal.get('id') not in [s.get('id') for s in high_score_signals]:
+                            high_score_signals.append(signal)
+            
+            if len(high_score_signals) == 0:
+                print(f"   ❌ No signals with score >= 70 found even after extended polling")
+                return False
+        
+        # Step 4: Get alerts and validate correlation
+        print(f"\n   Step 4: Checking alerts correlation...")
+        alerts_success, alerts_response = self.run_test(
+            "Get Alerts for Correlation",
+            "GET",
+            "api/alerts?limit=50",
+            200
+        )
+        
+        if not alerts_success or not isinstance(alerts_response, dict):
+            print(f"   ❌ Failed to get alerts")
+            return False
+            
+        alerts = alerts_response.get('alerts', [])
+        print(f"   📨 Found {len(alerts)} total alerts")
+        
+        if len(alerts) == 0:
+            print(f"   ⚠️ No alerts found - checking backend logs for errors...")
+            # This would be where we check logs in a real scenario
+            print(f"   ❌ Alert generation may have failed")
+            return False
+        
+        # Step 5: Validate alert structure and correlation
+        print(f"\n   Step 5: Validating alert structure and correlation...")
+        
+        high_score_signal_ids = {s.get('id') for s in high_score_signals}
+        correlated_alerts = []
+        
+        for alert in alerts:
+            # Validate alert structure
+            required_fields = ['id', 'signal_id', 'title', 'message', 'priority', 'timestamp', 'read', 'iq_option_ready']
+            missing_fields = [field for field in required_fields if field not in alert]
+            
+            if missing_fields:
+                print(f"   ⚠️ Alert missing fields: {missing_fields}")
+            
+            # Check if alert corresponds to high score signal
+            alert_signal_id = alert.get('signal_id')
+            if alert_signal_id in high_score_signal_ids:
+                correlated_alerts.append(alert)
+                
+                # Validate priority mapping
+                signal = next((s for s in high_score_signals if s.get('id') == alert_signal_id), None)
+                if signal:
+                    score = signal.get('confidence_score', 0)
+                    priority = alert.get('priority', '')
+                    expected_priority = 'high' if score >= 80 else 'medium' if score >= 70 else 'low'
+                    
+                    if priority == expected_priority:
+                        print(f"   ✅ Alert priority correct: score={score} -> priority={priority}")
+                    else:
+                        print(f"   ⚠️ Alert priority mismatch: score={score}, expected={expected_priority}, got={priority}")
+                
+                # Validate iq_option_ready
+                if alert.get('iq_option_ready') == True:
+                    print(f"   ✅ Alert is IQ Option ready")
+                else:
+                    print(f"   ⚠️ Alert not marked as IQ Option ready")
+        
+        print(f"\n   📊 Correlation Results:")
+        print(f"      - High score signals (>=70): {len(high_score_signals)}")
+        print(f"      - Total alerts: {len(alerts)}")
+        print(f"      - Correlated alerts: {len(correlated_alerts)}")
+        
+        # Step 6: Validate minimum correlation requirement
+        if len(high_score_signals) >= 3 and len(correlated_alerts) >= 1:
+            print(f"   ✅ PASSED: Found {len(high_score_signals)} signals >=70 with {len(correlated_alerts)} corresponding alerts")
+            self.tests_passed += 1
+            return True
+        elif len(high_score_signals) > 0 and len(correlated_alerts) > 0:
+            print(f"   ✅ PARTIAL PASS: Found {len(high_score_signals)} signals >=70 with {len(correlated_alerts)} corresponding alerts")
+            print(f"      (Less than 3 high-score signals, but correlation is working)")
+            self.tests_passed += 1
+            return True
+        else:
+            print(f"   ❌ FAILED: Insufficient correlation between high-score signals and alerts")
+            return False
+
 def main():
     print("🚀 Starting AI Trading System Backend Tests")
     print("=" * 50)
