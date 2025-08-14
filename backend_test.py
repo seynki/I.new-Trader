@@ -875,26 +875,324 @@ class AITradingSystemTester:
             print(f"   ❌ FAILED: Insufficient correlation between high-score signals and alerts")
             return False
 
+    def test_review_request_focused_endpoints(self):
+        """Test specific endpoints mentioned in review request"""
+        print(f"\n🎯 REVIEW REQUEST FOCUSED TESTING")
+        print(f"=" * 60)
+        print(f"Testing backend endpoints that feed frontend changes as per review request")
+        
+        all_tests_passed = True
+        
+        # Test 1: /api/stats endpoint - test twice with 10s interval
+        print(f"\n📊 Test 1: /api/stats endpoint (testing twice with 10s interval)")
+        
+        # First call
+        success1, response1 = self.run_test(
+            "Stats Endpoint - First Call",
+            "GET",
+            "api/stats",
+            200
+        )
+        
+        if success1 and isinstance(response1, dict):
+            # Validate required fields and types
+            required_fields = {
+                'score_avg': int,
+                'max_score': int, 
+                'rr_avg': float,
+                'trending_markets': int
+            }
+            
+            for field, expected_type in required_fields.items():
+                if field in response1:
+                    value = response1[field]
+                    if isinstance(value, expected_type):
+                        print(f"   ✅ {field}: {value} (type: {type(value).__name__})")
+                    else:
+                        print(f"   ❌ {field}: {value} (expected {expected_type.__name__}, got {type(value).__name__})")
+                        all_tests_passed = False
+                else:
+                    print(f"   ❌ Missing required field: {field}")
+                    all_tests_passed = False
+        else:
+            print(f"   ❌ First stats call failed")
+            all_tests_passed = False
+        
+        # Wait 10 seconds
+        print(f"   ⏳ Waiting 10 seconds before second call...")
+        time.sleep(10)
+        
+        # Second call
+        success2, response2 = self.run_test(
+            "Stats Endpoint - Second Call",
+            "GET", 
+            "api/stats",
+            200
+        )
+        
+        if success2 and isinstance(response2, dict):
+            print(f"   ✅ Second stats call successful")
+            
+            # Compare values to observe variation
+            if success1:
+                for field in ['score_avg', 'max_score', 'rr_avg', 'trending_markets']:
+                    if field in response1 and field in response2:
+                        val1, val2 = response1[field], response2[field]
+                        if val1 != val2:
+                            print(f"   📈 {field} changed: {val1} → {val2}")
+                        else:
+                            print(f"   📊 {field} unchanged: {val1}")
+        else:
+            print(f"   ❌ Second stats call failed")
+            all_tests_passed = False
+        
+        # Test 2: /api/market-data endpoint
+        print(f"\n📈 Test 2: /api/market-data endpoint")
+        success, response = self.run_test(
+            "Market Data Endpoint",
+            "GET",
+            "api/market-data", 
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            if 'data' in response and isinstance(response['data'], list):
+                data = response['data']
+                print(f"   ✅ Market data returned {len(data)} symbols")
+                
+                # Check for diverse symbols (not just SP500/NAS100)
+                symbols = [item.get('symbol', '') for item in data]
+                diverse_symbols = [s for s in symbols if s not in ['SP500', 'NAS100']]
+                print(f"   ✅ Diverse symbols available: {len(diverse_symbols)} (non-SP500/NAS100)")
+                print(f"   📋 Sample symbols: {symbols[:5]}")
+                
+                # Validate structure
+                if data:
+                    sample = data[0]
+                    required_fields = ['symbol', 'price', 'change_24h', 'volume', 'timestamp']
+                    for field in required_fields:
+                        if field in sample:
+                            print(f"   ✅ Field '{field}' present")
+                        else:
+                            print(f"   ❌ Field '{field}' missing")
+                            all_tests_passed = False
+            else:
+                print(f"   ❌ Invalid market data structure")
+                all_tests_passed = False
+        else:
+            print(f"   ❌ Market data endpoint failed")
+            all_tests_passed = False
+        
+        # Test 3: /api/signals endpoint
+        print(f"\n🎯 Test 3: /api/signals?limit=5 endpoint")
+        success, response = self.run_test(
+            "Signals Endpoint",
+            "GET",
+            "api/signals?limit=5",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            if 'signals' in response:
+                signals = response['signals']
+                print(f"   ✅ Signals returned: {len(signals)}")
+                
+                if signals:
+                    # Validate signal structure
+                    sample = signals[0]
+                    required_fields = ['id', 'symbol', 'confidence_score', 'risk_reward_ratio']
+                    for field in required_fields:
+                        if field in sample:
+                            print(f"   ✅ Signal field '{field}': {sample[field]}")
+                        else:
+                            print(f"   ❌ Signal field '{field}' missing")
+                            all_tests_passed = False
+                else:
+                    print(f"   ⚠️ No signals available")
+            else:
+                print(f"   ❌ 'signals' key missing")
+                all_tests_passed = False
+        else:
+            print(f"   ❌ Signals endpoint failed")
+            all_tests_passed = False
+        
+        # Test 4: /api/iq-option/test-connection endpoint
+        print(f"\n🔗 Test 4: /api/iq-option/test-connection endpoint")
+        success, response = self.run_test(
+            "IQ Option Test Connection",
+            "POST",
+            "api/iq-option/test-connection",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            required_fields = ['connected', 'account_type', 'balance']
+            for field in required_fields:
+                if field in response:
+                    print(f"   ✅ IQ Option field '{field}': {response[field]}")
+                else:
+                    print(f"   ❌ IQ Option field '{field}' missing")
+                    all_tests_passed = False
+        else:
+            print(f"   ❌ IQ Option test connection failed")
+            all_tests_passed = False
+        
+        # Test 5: WebSocket /api/ws for market_update and new_signal events
+        print(f"\n🌐 Test 5: WebSocket /api/ws for market_update and new_signal events")
+        
+        ws_url = self.base_url.replace('https', 'wss') + '/api/ws'
+        print(f"   WebSocket URL: {ws_url}")
+        
+        market_updates_received = []
+        new_signals_received = []
+        
+        def on_message(ws, message):
+            try:
+                data = json.loads(message)
+                msg_type = data.get('type', '')
+                
+                if msg_type == 'market_update':
+                    market_updates_received.append(data)
+                    print(f"   📊 Market update received (total: {len(market_updates_received)})")
+                elif msg_type == 'new_signal':
+                    new_signals_received.append(data)
+                    print(f"   🎯 New signal received (total: {len(new_signals_received)})")
+                    
+            except Exception as e:
+                print(f"   ❌ Error parsing WebSocket message: {e}")
+
+        def on_error(ws, error):
+            print(f"   ❌ WebSocket error: {error}")
+
+        def on_close(ws, close_status_code, close_msg):
+            print(f"   🔌 WebSocket closed")
+
+        def on_open(ws):
+            print(f"   ✅ WebSocket connected")
+
+        try:
+            ws = websocket.WebSocketApp(ws_url,
+                                      on_open=on_open,
+                                      on_message=on_message,
+                                      on_error=on_error,
+                                      on_close=on_close)
+            
+            # Run WebSocket in a separate thread
+            wst = threading.Thread(target=ws.run_forever)
+            wst.daemon = True
+            wst.start()
+            
+            # Wait 15 seconds (12-18s as specified)
+            print(f"   ⏳ Listening for 15 seconds...")
+            time.sleep(15)
+            
+            # Validate results
+            print(f"   📊 Market updates received: {len(market_updates_received)}")
+            print(f"   🎯 New signals received: {len(new_signals_received)}")
+            
+            if len(market_updates_received) >= 1:
+                print(f"   ✅ At least one market_update received")
+                # Validate structure
+                sample = market_updates_received[0]
+                if 'data' in sample and isinstance(sample['data'], list):
+                    print(f"   ✅ Market update has valid structure")
+                else:
+                    print(f"   ❌ Market update structure invalid")
+                    all_tests_passed = False
+            else:
+                print(f"   ❌ No market_update events received")
+                all_tests_passed = False
+            
+            if len(new_signals_received) >= 1:
+                print(f"   ✅ At least one new_signal received")
+                # Validate structure
+                sample = new_signals_received[0]
+                if 'data' in sample and isinstance(sample['data'], dict):
+                    signal_data = sample['data']
+                    required_fields = ['id', 'symbol', 'confidence_score', 'risk_reward_ratio']
+                    for field in required_fields:
+                        if field in signal_data:
+                            print(f"   ✅ New signal field '{field}' present")
+                        else:
+                            print(f"   ❌ New signal field '{field}' missing")
+                            all_tests_passed = False
+                else:
+                    print(f"   ❌ New signal structure invalid")
+                    all_tests_passed = False
+            else:
+                print(f"   ⚠️ No new_signal events received (may be normal if no signals generated)")
+            
+            ws.close()
+            
+        except Exception as e:
+            print(f"   ❌ WebSocket test failed: {str(e)}")
+            all_tests_passed = False
+        
+        # Test 6: /api/alerts endpoint
+        print(f"\n🚨 Test 6: /api/alerts?limit=5 endpoint")
+        success, response = self.run_test(
+            "Alerts Endpoint",
+            "GET",
+            "api/alerts?limit=5",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            if 'alerts' in response:
+                alerts = response['alerts']
+                print(f"   ✅ Alerts returned: {len(alerts)}")
+                
+                if alerts:
+                    # Validate alert structure
+                    sample = alerts[0]
+                    required_fields = ['id', 'signal_id', 'alert_type', 'title', 'message', 'priority', 'timestamp']
+                    for field in required_fields:
+                        if field in sample:
+                            print(f"   ✅ Alert field '{field}' present")
+                        else:
+                            print(f"   ❌ Alert field '{field}' missing")
+                            all_tests_passed = False
+                else:
+                    print(f"   ⚠️ No alerts available")
+            else:
+                print(f"   ❌ 'alerts' key missing")
+                all_tests_passed = False
+        else:
+            print(f"   ❌ Alerts endpoint failed")
+            all_tests_passed = False
+        
+        # Final result
+        print(f"\n🎯 REVIEW REQUEST TESTING SUMMARY:")
+        if all_tests_passed:
+            print(f"   ✅ ALL REVIEW REQUEST TESTS PASSED")
+            self.tests_passed += 1
+        else:
+            print(f"   ❌ SOME REVIEW REQUEST TESTS FAILED")
+        
+        self.tests_run += 1
+        return all_tests_passed
+
 def main():
     print("🚀 Starting AI Trading System Backend Tests")
     print("=" * 50)
     
     tester = AITradingSystemTester()
     
-    # Run all tests - prioritizing the specific review request test
+    # Run focused test based on review request first
     tests = [
+        tester.test_review_request_focused_endpoints,  # NEW: Specific review request focused test
         tester.test_health_endpoint,
-        tester.test_signal_confidence_and_alerts_correlation,  # NEW: Specific review request test
+        tester.test_signal_confidence_and_alerts_correlation,  # Existing comprehensive test
         tester.test_market_data_endpoint,
         tester.test_signals_endpoint,
-        tester.test_notification_settings_endpoints,  # New notification tests
-        tester.test_alerts_endpoint,                  # New alerts tests
-        tester.test_iq_option_endpoints,             # New IQ Option tests
-        tester.test_stats_endpoint,                  # New stats tests
+        tester.test_notification_settings_endpoints,
+        tester.test_alerts_endpoint,
+        tester.test_iq_option_endpoints,
+        tester.test_stats_endpoint,
         tester.test_indicators_endpoint,
-        tester.test_websocket_notifications,         # Enhanced WebSocket tests
+        tester.test_websocket_notifications,
         tester.test_signal_generation_logic,
-        tester.test_notification_system_integration  # Integration test
+        tester.test_notification_system_integration
     ]
     
     for test in tests:
