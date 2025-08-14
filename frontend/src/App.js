@@ -171,28 +171,25 @@ function App() {
   const formatPrice = (price, symbol) => {
     if (!price) return '0.00';
     
-    // Crypto pairs - mostrar apenas 3 dígitos principais  
-    if (symbol && (symbol.includes('USD') || symbol.includes('BTC'))) {
-      if (price >= 1000) {
-        // Para preços acima de 1000, mostrar sem casas decimais
-        return Math.round(price).toLocaleString();
-      } else if (price >= 100) {
-        // Para preços entre 100-1000, mostrar 1 casa decimal
-        return price.toFixed(1);
-      } else if (price >= 10) {
-        // Para preços entre 10-100, mostrar 2 casas decimais
-        return price.toFixed(2);
-      } else {
-        // Para preços pequenos, mostrar 4 casas decimais max
-        return price.toFixed(4);
-      }
+    // Para números muito grandes (índices como US30, NAS100)
+    if (price >= 10000) {
+      return Math.round(price).toLocaleString();
     }
-    
-    // Fallback para outros símbolos
-    return price.toLocaleString(undefined, { 
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 0 
-    });
+    // Para preços médios (BTC, etc)
+    else if (price >= 1000) {
+      return Math.round(price).toLocaleString();
+    }
+    // Para preços forex (JPY, EUR, etc)
+    else if (price >= 100) {
+      return price.toFixed(1);
+    }
+    else if (price >= 10) {
+      return price.toFixed(2);
+    }
+    // Para preços muito pequenos
+    else {
+      return price.toFixed(4);
+    }
   };
 
   // Função para formatar símbolos no estilo IQ Option
