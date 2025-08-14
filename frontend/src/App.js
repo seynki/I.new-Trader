@@ -331,19 +331,19 @@ function App() {
               </CardHeader>
               <CardContent>
                 {/* Table Header */}
-                <div className="grid grid-cols-12 gap-2 text-xs text-gray-400 mb-4 px-2">
-                  <div className="col-span-2">Mercado</div>
-                  <div>Ativo</div>
-                  <div>TF</div>
-                  <div>Score</div>
-                  <div>RR</div>
-                  <div>Risco%</div>
-                  <div>Lado</div>
-                  <div>Entrada</div>
-                  <div>Stop</div>
-                  <div>Alvo</div>
-                  <div>Regime</div>
-                  <div>Qualidade</div>
+                <div className="grid grid-cols-12 gap-3 text-xs text-gray-400 mb-4 px-3 py-2">
+                  <div className="col-span-2 font-semibold">Mercado</div>
+                  <div className="font-semibold">Ativo</div>
+                  <div className="font-semibold">TF</div>
+                  <div className="font-semibold">Score</div>
+                  <div className="font-semibold">RR</div>
+                  <div className="font-semibold">Risco%</div>
+                  <div className="font-semibold">Lado</div>
+                  <div className="font-semibold">Entrada</div>
+                  <div className="font-semibold">Stop</div>
+                  <div className="font-semibold">Alvo</div>
+                  <div className="font-semibold">Regime</div>
+                  <div className="font-semibold">Qualidade</div>
                 </div>
                 
                 {/* Opportunities List */}
