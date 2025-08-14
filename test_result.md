@@ -219,11 +219,10 @@ metadata:
 
 test_plan:
   current_focus:
+    - "WebSocket Streaming Fix and Number Formatting"
     - "IQ Option Symbol Format and Design Update"
     - "Notification System Implementation"
     - "IQ Option Integration (Notifications Only)"
-    - "Header Design Improvement - Brain to Green Circle"
-    - "Table Spacing and Layout Improvements"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
