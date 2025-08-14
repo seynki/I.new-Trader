@@ -530,18 +530,18 @@ function App() {
               </CardHeader>
               <CardContent>
                 {/* Table Header */}
-                <div className="grid grid-cols-12 gap-3 text-xs text-gray-400 mb-4 px-3 py-2">
+                <div className="grid grid-cols-12 gap-2 text-xs text-gray-400 mb-4 px-3 py-2">
                   <div className="col-span-2 font-semibold">Ativo</div>
                   <div className="font-semibold">TF</div>
                   <div className="font-semibold text-center">Score</div>
-                  <div className="font-semibold text-right">RR</div>
-                  <div className="font-semibold text-right">Risco%</div>
+                  <div className="font-semibold text-center">RR</div>
+                  <div className="font-semibold text-center">Risco%</div>
                   <div className="font-semibold">Lado</div>
-                  <div className="font-semibold text-right">Entrada</div>
-                  <div className="font-semibold text-right">Stop</div>
-                  <div className="font-semibold text-right">Alvo</div>
-                  <div className="font-semibold">Regime</div>
-                  <div className="font-semibold">Qualidade</div>
+                  <div className="col-span-1 font-semibold text-right">Entrada</div>
+                  <div className="col-span-1 font-semibold text-right">Stop</div>
+                  <div className="col-span-1 font-semibold text-right">Alvo</div>
+                  <div className="font-semibold text-center">Regime</div>
+                  <div className="font-semibold text-center">Qualidade</div>
                 </div>
                 
                 {/* Opportunities List */}
