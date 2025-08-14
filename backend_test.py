@@ -306,6 +306,364 @@ class AITradingSystemTester:
         
         return False
 
+    def test_notification_settings_endpoints(self):
+        """Test notification settings endpoints"""
+        print(f"\n🔍 Testing Notification Settings Endpoints...")
+        
+        # Test GET notification settings
+        success_get, response_get = self.run_test(
+            "Get Notification Settings",
+            "GET",
+            "api/notifications/settings",
+            200
+        )
+        
+        if not success_get:
+            return False
+            
+        # Verify default settings structure
+        if isinstance(response_get, dict):
+            expected_fields = ['user_id', 'notifications_enabled', 'min_score_threshold', 
+                             'min_rr_threshold', 'notification_types', 'timeframes']
+            for field in expected_fields:
+                if field in response_get:
+                    print(f"   ✓ Settings field '{field}' present")
+                else:
+                    print(f"   ⚠️ Settings field '{field}' missing")
+        
+        # Test POST notification settings
+        test_settings = {
+            "user_id": "test_user",
+            "iq_option_email": "test@example.com",
+            "notifications_enabled": True,
+            "min_score_threshold": 75,
+            "min_rr_threshold": 2.0,
+            "max_risk_threshold": 0.8,
+            "notification_types": ["desktop", "websocket"],
+            "timeframes": ["5m", "15m"]
+        }
+        
+        success_post, response_post = self.run_test(
+            "Update Notification Settings",
+            "POST",
+            "api/notifications/settings",
+            200,
+            test_settings
+        )
+        
+        if success_post and isinstance(response_post, dict):
+            if response_post.get('status') == 'success':
+                print(f"   ✓ Settings updated successfully")
+                return True
+            else:
+                print(f"   ⚠️ Settings update response unexpected: {response_post}")
+        
+        return success_get and success_post
+
+    def test_alerts_endpoint(self):
+        """Test alerts endpoint"""
+        print(f"\n🔍 Testing Alerts Endpoint...")
+        
+        success, response = self.run_test(
+            "Get Trading Alerts",
+            "GET",
+            "api/alerts?limit=10",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            if 'alerts' in response:
+                alerts = response['alerts']
+                print(f"   ✓ Found {len(alerts)} alerts")
+                
+                if alerts:
+                    sample_alert = alerts[0]
+                    required_fields = ['id', 'signal_id', 'alert_type', 'title', 
+                                     'message', 'priority', 'timestamp']
+                    for field in required_fields:
+                        if field in sample_alert:
+                            print(f"   ✓ Alert field '{field}' present")
+                        else:
+                            print(f"   ⚠️ Alert field '{field}' missing")
+                    
+                    # Check alert priorities
+                    priorities = set()
+                    for alert in alerts[:5]:  # Check first 5 alerts
+                        if 'priority' in alert:
+                            priorities.add(alert['priority'])
+                    
+                    valid_priorities = {'low', 'medium', 'high', 'critical'}
+                    if priorities.issubset(valid_priorities):
+                        print(f"   ✓ Alert priorities valid: {priorities}")
+                    else:
+                        print(f"   ⚠️ Invalid alert priorities found: {priorities - valid_priorities}")
+                
+                return True
+            else:
+                print(f"   ❌ 'alerts' key missing in response")
+        
+        return success
+
+    def test_iq_option_endpoints(self):
+        """Test IQ Option integration endpoints"""
+        print(f"\n🔍 Testing IQ Option Integration Endpoints...")
+        
+        # Test connection test endpoint
+        success_conn, response_conn = self.run_test(
+            "IQ Option Connection Test",
+            "POST",
+            "api/iq-option/test-connection",
+            200
+        )
+        
+        if success_conn and isinstance(response_conn, dict):
+            expected_fields = ['status', 'message', 'email', 'connected', 'account_type', 'balance']
+            for field in expected_fields:
+                if field in response_conn:
+                    print(f"   ✓ Connection test field '{field}' present")
+                else:
+                    print(f"   ⚠️ Connection test field '{field}' missing")
+            
+            if response_conn.get('status') == 'success' and response_conn.get('connected'):
+                print(f"   ✓ IQ Option connection test successful")
+            else:
+                print(f"   ⚠️ IQ Option connection test failed")
+        
+        # Test signal formatting (need to get a signal ID first)
+        signals_success, signals_response = self.run_test(
+            "Get Signals for IQ Option Test",
+            "GET",
+            "api/signals?limit=1",
+            200
+        )
+        
+        if signals_success and isinstance(signals_response, dict) and 'signals' in signals_response:
+            signals = signals_response['signals']
+            if signals and 'id' in signals[0]:
+                signal_id = signals[0]['id']
+                
+                success_format, response_format = self.run_test(
+                    "Format Signal for IQ Option",
+                    "POST",
+                    f"api/iq-option/format-signal/{signal_id}",
+                    200
+                )
+                
+                if success_format and isinstance(response_format, dict):
+                    if 'iq_option_format' in response_format:
+                        iq_format = response_format['iq_option_format']
+                        expected_iq_fields = ['asset', 'action', 'amount', 'expiration', 
+                                            'entry_price', 'confidence']
+                        for field in expected_iq_fields:
+                            if field in iq_format:
+                                print(f"   ✓ IQ Option format field '{field}' present")
+                            else:
+                                print(f"   ⚠️ IQ Option format field '{field}' missing")
+                        
+                        return success_conn and success_format
+                    else:
+                        print(f"   ❌ 'iq_option_format' missing in response")
+            else:
+                print(f"   ⚠️ No signals available for IQ Option format test")
+        
+        return success_conn
+
+    def test_stats_endpoint(self):
+        """Test system statistics endpoint"""
+        print(f"\n🔍 Testing System Statistics Endpoint...")
+        
+        success, response = self.run_test(
+            "System Statistics",
+            "GET",
+            "api/stats",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            expected_fields = ['score_avg', 'max_score', 'rr_avg', 'trending_markets', 
+                             'total_signals', 'active_symbols', 'volatility_regime']
+            for field in expected_fields:
+                if field in response:
+                    print(f"   ✓ Stats field '{field}' present: {response[field]}")
+                else:
+                    print(f"   ⚠️ Stats field '{field}' missing")
+            
+            # Validate data ranges
+            if 'score_avg' in response:
+                score_avg = response['score_avg']
+                if 0 <= score_avg <= 100:
+                    print(f"   ✓ Average score in valid range: {score_avg}")
+                else:
+                    print(f"   ⚠️ Average score out of range: {score_avg}")
+            
+            if 'rr_avg' in response:
+                rr_avg = response['rr_avg']
+                if rr_avg >= 1.0:
+                    print(f"   ✓ Average RR ratio valid: {rr_avg}")
+                else:
+                    print(f"   ⚠️ Average RR ratio below 1.0: {rr_avg}")
+            
+            return True
+        
+        return success
+
+    def test_websocket_notifications(self):
+        """Test WebSocket notifications and alerts"""
+        print(f"\n🔍 Testing WebSocket Notifications...")
+        
+        ws_url = self.base_url.replace('https', 'wss') + '/api/ws'
+        print(f"   WebSocket URL: {ws_url}")
+        
+        def on_message(ws, message):
+            try:
+                data = json.loads(message)
+                self.ws_messages.append(data)
+                
+                # Check for trading alerts
+                if data.get('type') == 'trading_alert':
+                    self.notification_alerts_received.append(data)
+                    print(f"   🚨 Trading alert received: {data.get('data', {}).get('title', 'Unknown')}")
+                elif data.get('type') == 'new_signal':
+                    print(f"   📈 New signal received: {data.get('data', {}).get('symbol', 'Unknown')}")
+                elif data.get('type') == 'market_update':
+                    print(f"   📊 Market update received")
+                else:
+                    print(f"   📨 Message received: {data.get('type', 'unknown')}")
+                    
+            except Exception as e:
+                print(f"   ❌ Error parsing WebSocket message: {e}")
+
+        def on_error(ws, error):
+            print(f"   ❌ WebSocket error: {error}")
+
+        def on_close(ws, close_status_code, close_msg):
+            print(f"   🔌 WebSocket closed")
+            self.ws_connected = False
+
+        def on_open(ws):
+            print(f"   ✅ WebSocket connected")
+            self.ws_connected = True
+
+        try:
+            ws = websocket.WebSocketApp(ws_url,
+                                      on_open=on_open,
+                                      on_message=on_message,
+                                      on_error=on_error,
+                                      on_close=on_close)
+            
+            # Run WebSocket in a separate thread
+            wst = threading.Thread(target=ws.run_forever)
+            wst.daemon = True
+            wst.start()
+            
+            # Wait longer for notifications
+            print(f"   ⏳ Waiting 10 seconds for notifications...")
+            time.sleep(10)
+            
+            if self.ws_connected:
+                self.tests_passed += 1
+                print(f"   ✅ WebSocket connection successful")
+                print(f"   📊 Total messages received: {len(self.ws_messages)}")
+                print(f"   🚨 Trading alerts received: {len(self.notification_alerts_received)}")
+                
+                # Analyze message types
+                message_types = {}
+                for msg in self.ws_messages:
+                    if isinstance(msg, dict) and 'type' in msg:
+                        msg_type = msg['type']
+                        message_types[msg_type] = message_types.get(msg_type, 0) + 1
+                
+                print(f"   📋 Message type breakdown: {message_types}")
+                
+                ws.close()
+                return True
+            else:
+                print(f"   ❌ WebSocket connection failed")
+                return False
+                
+        except Exception as e:
+            print(f"   ❌ WebSocket test failed: {str(e)}")
+            return False
+        finally:
+            self.tests_run += 1
+
+    def test_notification_system_integration(self):
+        """Test complete notification system integration"""
+        print(f"\n🔍 Testing Notification System Integration...")
+        
+        # First, update notification settings to ensure notifications are enabled
+        test_settings = {
+            "user_id": "integration_test",
+            "notifications_enabled": True,
+            "min_score_threshold": 60,  # Lower threshold to catch more signals
+            "min_rr_threshold": 1.5,
+            "notification_types": ["websocket"],
+            "timeframes": ["1m", "5m", "15m"]
+        }
+        
+        settings_success, _ = self.run_test(
+            "Setup Notification Settings for Integration Test",
+            "POST",
+            "api/notifications/settings",
+            200,
+            test_settings
+        )
+        
+        if not settings_success:
+            print(f"   ❌ Failed to setup notification settings")
+            return False
+        
+        print(f"   ✓ Notification settings configured")
+        
+        # Wait for signal generation and notifications
+        print(f"   ⏳ Waiting 15 seconds for signal generation and notifications...")
+        initial_signal_count = len(self.ws_messages)
+        time.sleep(15)
+        
+        # Check if new signals were generated
+        signals_success, signals_response = self.run_test(
+            "Check Recent Signals",
+            "GET",
+            "api/signals?limit=5",
+            200
+        )
+        
+        if signals_success and isinstance(signals_response, dict):
+            signals = signals_response.get('signals', [])
+            print(f"   📈 Found {len(signals)} recent signals")
+            
+            # Check if alerts were created
+            alerts_success, alerts_response = self.run_test(
+                "Check Recent Alerts",
+                "GET",
+                "api/alerts?limit=5",
+                200
+            )
+            
+            if alerts_success and isinstance(alerts_response, dict):
+                alerts = alerts_response.get('alerts', [])
+                print(f"   🚨 Found {len(alerts)} recent alerts")
+                
+                # Verify signal-alert correlation
+                signal_ids = {s.get('id') for s in signals if 'id' in s}
+                alert_signal_ids = {a.get('signal_id') for a in alerts if 'signal_id' in a}
+                
+                correlated_alerts = signal_ids.intersection(alert_signal_ids)
+                print(f"   🔗 Correlated signal-alert pairs: {len(correlated_alerts)}")
+                
+                if len(signals) > 0 and len(alerts) > 0:
+                    print(f"   ✅ Notification system integration working")
+                    self.tests_passed += 1
+                    return True
+                else:
+                    print(f"   ⚠️ No signals or alerts generated during test period")
+            else:
+                print(f"   ❌ Failed to fetch alerts")
+        else:
+            print(f"   ❌ Failed to fetch signals")
+        
+        return False
+
 def main():
     print("🚀 Starting AI Trading System Backend Tests")
     print("=" * 50)
