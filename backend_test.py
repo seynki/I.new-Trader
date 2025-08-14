@@ -881,9 +881,10 @@ def main():
     
     tester = AITradingSystemTester()
     
-    # Run all tests - prioritizing notification system tests
+    # Run all tests - prioritizing the specific review request test
     tests = [
         tester.test_health_endpoint,
+        tester.test_signal_confidence_and_alerts_correlation,  # NEW: Specific review request test
         tester.test_market_data_endpoint,
         tester.test_signals_endpoint,
         tester.test_notification_settings_endpoints,  # New notification tests
