@@ -94,6 +94,27 @@ class Position(BaseModel):
     unrealized_pnl: float
     timestamp: datetime
 
+class NotificationSettings(BaseModel):
+    user_id: str = "default_user"
+    iq_option_email: str = ""
+    notifications_enabled: bool = True
+    min_score_threshold: int = 70
+    min_rr_threshold: float = 1.5
+    max_risk_threshold: float = 1.0
+    notification_types: List[str] = ["desktop", "websocket"]
+    timeframes: List[str] = ["1m", "5m", "15m"]
+
+class TradingAlert(BaseModel):
+    id: str
+    signal_id: str
+    alert_type: str  # "new_signal", "stop_loss", "take_profit"
+    title: str
+    message: str
+    priority: str  # "low", "medium", "high", "critical"
+    timestamp: datetime
+    read: bool = False
+    iq_option_ready: bool = False
+
 # Sistema de simulação de mercado avançado
 class AdvancedMarketSimulator:
     def __init__(self):
