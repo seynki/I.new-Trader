@@ -423,6 +423,11 @@ async def get_signals(symbol: Optional[str] = None, limit: int = 20):
     cursor = db.signals.find(query).sort("timestamp", -1).limit(limit)
     signals = await cursor.to_list(length=limit)
     
+    # Convert ObjectId to string for JSON serialization
+    for signal in signals:
+        if "_id" in signal:
+            signal["_id"] = str(signal["_id"])
+    
     return {"signals": signals}
 
 @app.get("/api/indicators/{symbol}")
