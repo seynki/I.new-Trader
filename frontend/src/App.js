@@ -117,17 +117,56 @@ function App() {
 
   const fetchInitialData = async () => {
     try {
-      const [marketResponse, signalsResponse] = await Promise.all([
+      const [marketResponse, signalsResponse, alertsResponse] = await Promise.all([
         axios.get(`${BACKEND_URL}/api/market-data`),
-        axios.get(`${BACKEND_URL}/api/signals?limit=20`)
+        axios.get(`${BACKEND_URL}/api/signals?limit=20`),
+        axios.get(`${BACKEND_URL}/api/alerts?limit=10`)
       ]);
       
       setMarketData(marketResponse.data.data);
       setSignals(signalsResponse.data.signals);
+      setAlerts(alertsResponse.data.alerts);
     } catch (error) {
       console.error('Erro ao buscar dados iniciais:', error);
     }
   };
+
+  const showTradingAlertNotification = (alertData) => {
+    // Create browser notification if permission granted
+    if (Notification.permission === "granted") {
+      new Notification(alertData.title, {
+        body: alertData.message,
+        icon: '/favicon.ico',
+        tag: alertData.id
+      });
+    }
+  };
+
+  const testIQOptionConnection = async () => {
+    try {
+      const response = await axios.post(`${BACKEND_URL}/api/iq-option/test-connection`);
+      setIqOptionStatus(response.data);
+    } catch (error) {
+      console.error('Erro ao testar conexão IQ Option:', error);
+      setIqOptionStatus({ status: 'error', message: 'Connection failed' });
+    }
+  };
+
+  const updateNotificationSettings = async (newSettings) => {
+    try {
+      await axios.post(`${BACKEND_URL}/api/notifications/settings`, newSettings);
+      setNotificationSettings(newSettings);
+    } catch (error) {
+      console.error('Erro ao atualizar configurações:', error);
+    }
+  };
+
+  // Request notification permission
+  useEffect(() => {
+    if (Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
 
   const formatPrice = (price, symbol) => {
     if (symbol.includes('USD')) {
