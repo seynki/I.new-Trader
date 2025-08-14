@@ -520,8 +520,89 @@ function App() {
             </Card>
           </div>
 
-          {/* Right Column - Rules & Logs */}
+          {/* Right Column - Notifications & Rules */}
           <div className="space-y-6">
+            {/* IQ Option Status */}
+            <Card className="bg-gray-900/50 border-gray-800/50 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg text-green-400">IQ Option Status</CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={testIQOptionConnection}
+                    className="text-xs"
+                  >
+                    Testar Conexão
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {iqOptionStatus ? (
+                  <>
+                    <div className="flex items-center space-x-2">
+                      {iqOptionStatus.status === 'success' ? (
+                        <CheckCircle className="h-4 w-4 text-green-400" />
+                      ) : (
+                        <AlertTriangle className="h-4 w-4 text-red-400" />
+                      )}
+                      <span className="text-sm text-gray-300">{iqOptionStatus.message}</span>
+                    </div>
+                    {iqOptionStatus.email && (
+                      <div className="text-xs text-gray-400">
+                        <span>Email: {iqOptionStatus.email}</span>
+                      </div>
+                    )}
+                    {iqOptionStatus.balance && (
+                      <div className="text-xs text-gray-400">
+                        <span>Saldo: ${iqOptionStatus.balance}</span>
+                      </div>
+                    )}
+                    <div className="text-xs text-blue-400">
+                      <Info className="h-3 w-3 inline mr-1" />
+                      Apenas notificações ativadas
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm text-gray-400">
+                    Clique para testar conexão
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Notification Settings */}
+            <Card className="bg-gray-900/50 border-gray-800/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-lg text-green-400">Configurações de Alerta</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-300">Notificações ativas</span>
+                  <Switch
+                    checked={notificationSettings.notifications_enabled}
+                    onCheckedChange={(checked) => updateNotificationSettings({
+                      ...notificationSettings,
+                      notifications_enabled: checked
+                    })}
+                    className="data-[state=checked]:bg-green-600"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-300">Score mínimo</span>
+                  <span className="text-sm text-green-400">{notificationSettings.min_score_threshold}%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-300">RR mínimo</span>
+                  <span className="text-sm text-green-400">{notificationSettings.min_rr_threshold}:1</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-300">Timeframes</span>
+                  <span className="text-sm text-blue-400">{notificationSettings.timeframes.join(', ')}</span>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Rules & Limits */}
             <Card className="bg-gray-900/50 border-gray-800/50 backdrop-blur-sm">
               <CardHeader>
