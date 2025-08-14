@@ -224,6 +224,54 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
+  - task: "Live Opportunities real-time update and SP500/NAS100 filter"
+    implemented: true
+    working: "NA"
+    file: "App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Atualizado WebSocket para atualizar oportunidades em tempo real e filtrar símbolos SP500/NAS100 no frontend."
+
+  - task: "Stats cards with real backend data (/api/stats)"
+    implemented: true
+    working: "NA"
+    file: "App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Cards 'Score médio' e 'Maior score' agora usam dados reais de /api/stats e atualizam ao chegar 'new_signal' via WS."
+
+  - task: "Alert sound on new Trading Alerts"
+    implemented: true
+    working: "NA"
+    file: "App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Som curto (Web Audio API) ao receber 'trading_alert'; mantém notificação do navegador. Proteção para desbloqueio de áudio na 1ª interação."
+
+  - task: "IQ Option Status shows balance and account type"
+    implemented: true
+    working: "NA"
+    file: "App.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Exibe balance e account_type vindos de /api/iq-option/test-connection."
+
         comment: "Implemented IQ Option symbol formatting (BTCUSDT → BTC/USD (OTC)). Changed symbol icons from orange background to black transparent (bg-black/40 backdrop-blur-sm). Improved number alignment to prevent overlapping. Applied to opportunities table, notifications, and market data sections. Added formatIQOptionSymbol() and getSymbolShort() functions for proper symbol handling."
 
   - task: "Notification System Frontend Integration"
