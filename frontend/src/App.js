@@ -175,6 +175,56 @@ function App() {
     return price.toLocaleString(undefined, { maximumFractionDigits: 2 });
   };
 
+  // Função para formatar símbolos no estilo IQ Option
+  const formatIQOptionSymbol = (symbol) => {
+    if (!symbol) return 'BTC/USD (OTC)';
+    
+    // Se termina com T (como BTCUSDT), remove o T e adiciona (OTC)
+    if (symbol.endsWith('T')) {
+      const base = symbol.slice(0, -1); // Remove o T
+      if (base.includes('USD')) {
+        // BTCUSD → BTC/USD
+        const crypto = base.replace('USD', '');
+        return `${crypto}/USD (OTC)`;
+      } else if (base.includes('USDT')) {
+        // BTCUSDT → BTC/USD (mas já foi removido o T)
+        const crypto = base.replace('USDT', '');
+        return `${crypto}/USD (OTC)`;
+      }
+    }
+    
+    // Outros formatos
+    if (symbol.includes('USDT')) {
+      const crypto = symbol.replace('USDT', '');
+      return `${crypto}/USD (OTC)`;
+    } else if (symbol.includes('USD')) {
+      const crypto = symbol.replace('USD', '');
+      return `${crypto}/USD (OTC)`;
+    }
+    
+    return symbol;
+  };
+
+  // Função para obter sigla do símbolo para o ícone
+  const getSymbolShort = (symbol) => {
+    if (!symbol) return 'BTC';
+    
+    if (symbol.endsWith('T')) {
+      const base = symbol.slice(0, -1);
+      if (base.includes('USD')) {
+        return base.replace('USD', '').substring(0, 3);
+      }
+    }
+    
+    if (symbol.includes('USDT')) {
+      return symbol.replace('USDT', '').substring(0, 3);
+    } else if (symbol.includes('USD')) {
+      return symbol.replace('USD', '').substring(0, 3);
+    }
+    
+    return symbol.substring(0, 3);
+  };
+
   const formatChange = (change) => {
     const sign = change >= 0 ? '+' : '';
     return `${sign}${change.toFixed(2)}%`;
