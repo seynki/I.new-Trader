@@ -897,6 +897,115 @@ async def get_indicators(symbol: str):
     
     return indicators
 
+@app.post("/api/notifications/settings")
+async def update_notification_settings(settings: NotificationSettings):
+    """Atualiza as configurações de notificação"""
+    notification_manager.update_settings(settings)
+    
+    # Salvar no banco
+    try:
+        await db.notification_settings.replace_one(
+            {"user_id": settings.user_id}, 
+            settings.dict(), 
+            upsert=True
+        )
+    except Exception as e:
+        logger.error(f"Error saving notification settings: {e}")
+        raise HTTPException(status_code=500, detail="Error saving settings")
+    
+    return {"status": "success", "message": "Notification settings updated"}
+
+@app.get("/api/notifications/settings")
+async def get_notification_settings():
+    """Retorna as configurações atuais de notificação"""
+    try:
+        settings_doc = await db.notification_settings.find_one({"user_id": "default_user"})
+        if settings_doc:
+            # Remove _id for JSON serialization
+            settings_doc.pop("_id", None)
+            return settings_doc
+        return notification_manager.settings.dict()
+    except Exception as e:
+        logger.error(f"Error fetching notification settings: {e}")
+        return notification_manager.settings.dict()
+
+@app.get("/api/alerts")
+async def get_alerts(limit: int = 20, unread_only: bool = False):
+    """Retorna alertas recentes"""
+    try:
+        query = {}
+        if unread_only:
+            query["read"] = False
+            
+        cursor = db.alerts.find(query).sort("timestamp", -1).limit(limit)
+        alerts = await cursor.to_list(length=limit)
+        
+        # Convert ObjectId to string for JSON serialization
+        for alert in alerts:
+            if "_id" in alert:
+                alert["_id"] = str(alert["_id"])
+        
+        return {"alerts": alerts}
+    except Exception as e:
+        logger.error(f"Error fetching alerts: {e}")
+        return {"alerts": []}
+
+@app.post("/api/alerts/{alert_id}/mark-read")
+async def mark_alert_read(alert_id: str):
+    """Marca um alerta como lido"""
+    try:
+        result = await db.alerts.update_one(
+            {"id": alert_id},
+            {"$set": {"read": True}}
+        )
+        
+        if result.modified_count > 0:
+            return {"status": "success", "message": "Alert marked as read"}
+        else:
+            raise HTTPException(status_code=404, detail="Alert not found")
+    except Exception as e:
+        logger.error(f"Error marking alert as read: {e}")
+        raise HTTPException(status_code=500, detail="Error updating alert")
+
+@app.post("/api/iq-option/test-connection")
+async def test_iq_option_connection():
+    """Testa a conexão com IQ Option (simulado)"""
+    credentials = notification_manager.iq_option_credentials
+    
+    # Simulação de teste de conexão
+    await asyncio.sleep(1)  # Simular delay de conexão
+    
+    return {
+        "status": "success",
+        "message": "Connection test completed",
+        "email": credentials["email"],
+        "connected": True,
+        "account_type": "demo",
+        "balance": 10000.00,
+        "note": "This is a simulated connection for notification purposes only"
+    }
+
+@app.post("/api/iq-option/format-signal/{signal_id}")
+async def format_signal_for_iq_option(signal_id: str):
+    """Formata um sinal para o formato IQ Option"""
+    try:
+        signal_doc = await db.signals.find_one({"id": signal_id})
+        if not signal_doc:
+            raise HTTPException(status_code=404, detail="Signal not found")
+        
+        # Convert to TradingSignal object
+        signal = TradingSignal(**signal_doc)
+        iq_format = notification_manager.get_iq_option_format(signal)
+        
+        return {
+            "status": "success",
+            "iq_option_format": iq_format,
+            "original_signal": signal.dict()
+        }
+    except Exception as e:
+        logger.error(f"Error formatting signal for IQ Option: {e}")
+        raise HTTPException(status_code=500, detail="Error formatting signal")
+
 @app.get("/api/stats")
 async def get_system_stats():
     """Retorna estatísticas do sistema"""
