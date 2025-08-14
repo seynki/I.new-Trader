@@ -175,6 +175,18 @@ frontend:
         agent: "main"
         comment: "Improved spacing in opportunities table: increased gap from gap-2 to gap-3, padding from p-3 to p-4, increased icon size from w-8 h-8 to w-10 h-10, added font-mono classes for better readability, improved progress bar width and spacing."
 
+  - task: "WebSocket Streaming Fix and Number Formatting"
+    implemented: true
+    working: true
+    file: "server.py, App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Fixed WebSocket streaming by installing missing dependencies (websockets, uvicorn[standard], httptools). Updated requirements.txt and restarted backend. Improved number formatting to show fewer digits (prices >1000: no decimals, 100-1000: 1 decimal, 10-100: 2 decimals, <10: 4 decimals). WebSocket now connects successfully and shows real-time data with clean, readable price formatting."
+
   - task: "IQ Option Symbol Format and Design Update"
     implemented: true
     working: "NA"
