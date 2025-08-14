@@ -125,8 +125,7 @@ class AdvancedMarketSimulator:
             "EURUSD": {"type": "forex", "base_price": 1.0850, "volatility": 0.008},
             "GBPUSD": {"type": "forex", "base_price": 1.2650, "volatility": 0.01},
             "USDJPY": {"type": "forex", "base_price": 148.50, "volatility": 0.012},
-            "SP500": {"type": "index", "base_price": 5800.0, "volatility": 0.015},
-            "NAS100": {"type": "index", "base_price": 20000.0, "volatility": 0.02},
+
             "US30": {"type": "index", "base_price": 43000.0, "volatility": 0.018}
         }
         
