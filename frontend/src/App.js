@@ -549,7 +549,7 @@ function App() {
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {signals.slice(0, 10).map((signal, index) => (
                     <div 
-                      key={signal.id || index} 
+                      key={`${signal.id || 'signal'}-${index}-${signal.symbol || 'unknown'}`} 
                       className="grid grid-cols-12 gap-2 items-center bg-gray-800/30 rounded-lg p-3 hover:bg-gray-800/50 transition-colors border border-gray-700/30"
                     >
                       <div className="col-span-2 flex items-center space-x-2">
