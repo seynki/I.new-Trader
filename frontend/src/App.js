@@ -580,10 +580,10 @@ function App() {
                       <div className="col-span-1 text-xs text-red-400 font-mono text-right">{formatPrice(signal.stop_loss || 114965.91, signal.symbol)}</div>
                       <div className="col-span-1 text-xs text-green-400 font-mono text-right">{formatPrice(signal.take_profit || 115053.58, signal.symbol)}</div>
                       <div className="text-xs">
-                        <div className="text-yellow-400 font-medium">High-vol</div>
-                        <div className="text-gray-400">EMA9/21</div>
+                        <div className="text-yellow-400 font-medium text-center">High-vol</div>
+                        <div className="text-gray-400 text-center">EMA9/21</div>
                       </div>
-                      <div className="text-xs text-gray-400">normal</div>
+                      <div className="text-xs text-gray-400 text-center">normal</div>
                     </div>
                   ))}
                   
