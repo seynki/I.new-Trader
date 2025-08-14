@@ -209,19 +209,31 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Implemented IQ Option symbol formatting (BTCUSDT → BTC/USD (OTC)). Changed symbol icons from orange background to black transparent (bg-black/40 backdrop-blur-sm). Improved number alignment to prevent overlapping. Applied to opportunities table, notifications, and market data sections. Added formatIQOptionSymbol() and getSymbolShort() functions for proper symbol handling."
+        comment: "Implemented IQ Option symbol formatting (Forex EURUSD → EUR/USD with weekend (OTC), Crypto BTCUSDT → BTC/USD). Removed SP500 and NAS100 from UI and formatting now consistent across tables and cards."
 
-  - task: "Notification System Frontend Integration"
-    implemented: false
+  - task: "Realtime stats + sound on trading alerts"
+    implemented: true
     working: "NA"
     file: "App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Not yet implemented. Need to add notification settings panel, alerts display, and IQ Option connection status in the frontend."
+        comment: "Added /api/stats consumption and live updating of Score médio, Maior score e RR médio. Also added WebAudio beep when a new trading alert arrives."
+
+  - task: "Notification System Frontend Integration"
+    implemented: partially
+    working: "NA"
+    file: "App.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Alerts dropdown and counters implemented; settings toggle connected to backend; IQ Option status shows account type and balance from backend response."
 
 metadata:
   created_by: "main_agent"
