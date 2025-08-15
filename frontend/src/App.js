@@ -143,8 +143,8 @@ function App() {
           // Prevent duplicates
           const exists = prev.find(s => 
             s.id === newSignal.id || 
-            (s.symbol === newSignal.symbol &amp;&amp; 
-             Math.abs(new Date(s.timestamp || 0) - new Date(newSignal.timestamp)) &lt; 5000)
+            (s.symbol === newSignal.symbol && 
+             Math.abs(new Date(s.timestamp || 0) - new Date(newSignal.timestamp)) < 5000)
           );
           if (!exists) {
             return [newSignal, ...prev.slice(0, 19)];
