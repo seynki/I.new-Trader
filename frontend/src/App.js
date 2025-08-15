@@ -614,7 +614,7 @@ function App() {
                 {/* Opportunities List */}
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {signals
-                    .filter(s => s.symbol !== 'SP500' &amp;&amp; s.symbol !== 'NAS100')
+                    .filter(s => s.symbol !== 'SP500' && s.symbol !== 'NAS100')
                     .slice(0, 10)
                     .map((signal, index) => (
                     <div 
