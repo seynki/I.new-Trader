@@ -258,15 +258,8 @@ function App() {
     }
   };
 
-  // Auto-refresh IQ Option status every 10s
-  useEffect(() => {
-    const interval = setInterval(() => {
-      testIQOptionConnection();
-    }, 10000);
-    // first fetch on mount
-    testIQOptionConnection();
-    return () => clearInterval(interval);
-  }, []);
+  // IQ Option status: atualizar somente quando clicar em "Testar Conexão"
+  // Removido o auto-refresh. O status será atualizado apenas manualmente via botão.
 
   const updateNotificationSettings = async (newSettings) => {
     try {
