@@ -654,16 +654,15 @@ class NotificationManager:
         else:
             priority = "low"
         
-        # Criar título e mensagem
+        # Criar título e mensagem (formato IQ Option com símbolo BASE/QUOTE)
         action_emoji = "🟢" if signal.signal_type == "BUY" else "🔴"
-        title = f"{action_emoji} {signal.signal_type} Signal - {signal.symbol}"
+        sym_fmt = self.format_iq_symbol(signal.symbol)
+        title = f"{action_emoji} {signal.signal_type} Signal - {sym_fmt}"
         
         message = (
-            f"Sinal {signal.signal_type} para {signal.symbol}\n"
-            f"Score: {signal.confidence_score}% | RR: {signal.risk_reward_ratio}:1\n"
-            f"Entrada: {signal.entry_price:.4f}\n"
-            f"Stop: {signal.stop_loss:.4f} | Alvo: {signal.take_profit:.4f}\n"
-            f"Justificativa: {signal.justification}"
+            f"Oportunidade {signal.signal_type} detectada! Ativo: {sym_fmt} | "
+            f"Score: {signal.confidence_score}% | RR: {signal.risk_reward_ratio}:1 | "
+            f"Entrada: {signal.entry_price:.4f} | Stop: {signal.stop_loss:.4f} | Alvo: {signal.take_profit:.4f}"
         )
         
         alert = TradingAlert(
