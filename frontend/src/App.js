@@ -201,8 +201,8 @@ function App() {
       ]);
       
       // Filter out removed indices just in case
-      const md = (marketResponse.data.data || []).filter(m => m.symbol !== 'SP500' &amp;&amp; m.symbol !== 'NAS100');
-      const sigs = (signalsResponse.data.signals || []).filter(s => s.symbol !== 'SP500' &amp;&amp; s.symbol !== 'NAS100');
+      const md = (marketResponse.data.data || []).filter(m => m.symbol !== 'SP500' && m.symbol !== 'NAS100');
+      const sigs = (signalsResponse.data.signals || []).filter(s => s.symbol !== 'SP500' && s.symbol !== 'NAS100');
 
       setMarketData(md);
       setSignals(sigs);
