@@ -53,6 +53,7 @@ function App() {
     timeframes: ["1m", "5m", "15m"]
   });
   const [iqOptionStatus, setIqOptionStatus] = useState(null);
+  const [lastIqUpdate, setLastIqUpdate] = useState(null);
   const [stats, setStats] = useState({ scoreAvg: 0, maxScore: 0, rrAvg: 0, trending: 0 });
   const wsRef = useRef(null);
   const audioCtxRef = useRef(null);
