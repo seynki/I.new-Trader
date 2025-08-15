@@ -839,16 +839,237 @@ class AITradingSystemTester:
         self.tests_run += 1
         return all_passed
 
+    def test_iq_option_formatting_verification(self):
+        """Test IQ Option formatting in alerts as per review request"""
+        print(f"\n🎯 Testing IQ Option Formatting Verification...")
+        
+        all_passed = True
+        
+        # 1) Connect to WebSocket for 20s and collect trading_alert messages
+        print(f"\n1️⃣ Testing WebSocket /api/ws for trading alerts (20s)...")
+        ws_url = self.base_url.replace('https', 'wss') + '/api/ws'
+        print(f"   WebSocket URL: {ws_url}")
+        
+        trading_alerts_received = []
+        ws_connected = False
+        
+        def on_message(ws, message):
+            nonlocal trading_alerts_received
+            try:
+                data = json.loads(message)
+                if data.get('type') == 'trading_alert':
+                    trading_alerts_received.append(data)
+                    print(f"   🚨 Trading alert received: {len(trading_alerts_received)}")
+                    
+                    # Inspect the alert data immediately
+                    alert_data = data.get('data', {})
+                    title = alert_data.get('title', '')
+                    message = alert_data.get('message', '')
+                    
+                    print(f"      Title: {title}")
+                    print(f"      Message: {message}")
+                    
+                    # Check title format
+                    if 'BUY Signal - ' in title or 'SELL Signal - ' in title:
+                        if '/' in title:
+                            print(f"      ✅ Title contains signal type and '/' symbol")
+                        else:
+                            print(f"      ❌ Title missing '/' in symbol")
+                    else:
+                        print(f"      ❌ Title doesn't match expected format")
+                    
+                    # Check message format
+                    if 'Oportunidade' in message and 'Ativo: ' in message and ' | ' in message:
+                        if '\n' not in message:
+                            print(f"      ✅ Message format correct with '|' separators, no newlines")
+                        else:
+                            print(f"      ❌ Message contains newline characters")
+                    else:
+                        print(f"      ❌ Message format incorrect")
+                        
+            except Exception as e:
+                print(f"   ❌ Error parsing WebSocket message: {e}")
+
+        def on_error(ws, error):
+            print(f"   ❌ WebSocket error: {error}")
+
+        def on_close(ws, close_status_code, close_msg):
+            print(f"   🔌 WebSocket closed")
+
+        def on_open(ws):
+            nonlocal ws_connected
+            print(f"   ✅ WebSocket connected successfully")
+            ws_connected = True
+
+        try:
+            import websocket
+            ws = websocket.WebSocketApp(ws_url,
+                                      on_open=on_open,
+                                      on_message=on_message,
+                                      on_error=on_error,
+                                      on_close=on_close)
+            
+            # Run WebSocket in a separate thread
+            wst = threading.Thread(target=ws.run_forever)
+            wst.daemon = True
+            wst.start()
+            
+            # Wait 20 seconds as requested
+            print(f"   ⏳ Waiting 20 seconds for trading_alert messages...")
+            time.sleep(20)
+            
+            if ws_connected:
+                print(f"   ✅ WebSocket connection successful")
+                print(f"   🚨 Trading alerts received: {len(trading_alerts_received)}")
+                
+                # Analyze collected trading alerts
+                if len(trading_alerts_received) > 0:
+                    print(f"   📊 Analyzing {len(trading_alerts_received)} trading alerts...")
+                    
+                    valid_alerts = 0
+                    for alert in trading_alerts_received:
+                        alert_data = alert.get('data', {})
+                        title = alert_data.get('title', '')
+                        message = alert_data.get('message', '')
+                        
+                        # Validate title format
+                        title_valid = False
+                        if ('BUY Signal - ' in title or 'SELL Signal - ' in title) and '/' in title:
+                            title_valid = True
+                        
+                        # Validate message format
+                        message_valid = False
+                        if ('Oportunidade' in message and 'Ativo: ' in message and 
+                            ' | ' in message and '\n' not in message):
+                            message_valid = True
+                        
+                        if title_valid and message_valid:
+                            valid_alerts += 1
+                    
+                    print(f"   📈 Valid formatted alerts: {valid_alerts}/{len(trading_alerts_received)}")
+                    
+                    if valid_alerts == len(trading_alerts_received):
+                        print(f"   ✅ All trading alerts properly formatted")
+                    else:
+                        print(f"   ❌ Some trading alerts have formatting issues")
+                        all_passed = False
+                else:
+                    print(f"   ⚠️ No trading alerts received in 20 seconds")
+                    # This might not be a failure if no signals were generated
+                
+                ws.close()
+            else:
+                print(f"   ❌ WebSocket connection failed")
+                all_passed = False
+                
+        except Exception as e:
+            print(f"   ❌ WebSocket test failed: {str(e)}")
+            all_passed = False
+        
+        # 2) Test GET /api/alerts?limit=3 for symbol formatting
+        print(f"\n2️⃣ Testing GET /api/alerts?limit=3 for symbol formatting...")
+        success, response = self.run_test(
+            "Recent Alerts Symbol Formatting",
+            "GET",
+            "api/alerts?limit=3",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            if 'alerts' in response and isinstance(response['alerts'], list):
+                alerts = response['alerts']
+                print(f"   ✅ Found {len(alerts)} recent alerts")
+                
+                if alerts:
+                    valid_alert_formatting = 0
+                    for alert in alerts:
+                        title = alert.get('title', '')
+                        message = alert.get('message', '')
+                        
+                        print(f"   📋 Alert Title: {title}")
+                        print(f"   📋 Alert Message: {message}")
+                        
+                        # Check title has formatted symbol
+                        title_has_slash = '/' in title
+                        # Check message has formatted symbol and proper structure
+                        message_has_formatted_symbol = 'Ativo: ' in message and '/' in message
+                        message_has_separators = ' | ' in message
+                        message_no_newlines = '\n' not in message
+                        
+                        if (title_has_slash and message_has_formatted_symbol and 
+                            message_has_separators and message_no_newlines):
+                            valid_alert_formatting += 1
+                            print(f"   ✅ Alert formatting valid")
+                        else:
+                            print(f"   ❌ Alert formatting issues:")
+                            if not title_has_slash:
+                                print(f"      - Title missing '/' in symbol")
+                            if not message_has_formatted_symbol:
+                                print(f"      - Message missing formatted symbol")
+                            if not message_has_separators:
+                                print(f"      - Message missing ' | ' separators")
+                            if not message_no_newlines:
+                                print(f"      - Message contains newlines")
+                    
+                    print(f"   📊 Valid formatted alerts: {valid_alert_formatting}/{len(alerts)}")
+                    
+                    if valid_alert_formatting != len(alerts):
+                        all_passed = False
+                else:
+                    print(f"   ⚠️ No alerts available for formatting check")
+            else:
+                print(f"   ❌ 'alerts' field missing or not a list")
+                all_passed = False
+        else:
+            all_passed = False
+        
+        # 3) Test POST /api/iq-option/test-connection
+        print(f"\n3️⃣ Testing POST /api/iq-option/test-connection...")
+        success, response = self.run_test(
+            "IQ Option Connection Test",
+            "POST",
+            "api/iq-option/test-connection",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            required_fields = ['status', 'message', 'email', 'connected', 'account_type', 'balance']
+            missing_fields = []
+            
+            for field in required_fields:
+                if field in response:
+                    print(f"   ✅ Field '{field}' present: {response[field]}")
+                else:
+                    print(f"   ❌ Field '{field}' missing")
+                    missing_fields.append(field)
+            
+            if missing_fields:
+                print(f"   ❌ Missing required fields: {missing_fields}")
+                all_passed = False
+            else:
+                print(f"   ✅ All required fields present")
+        else:
+            all_passed = False
+        
+        if all_passed:
+            self.tests_passed += 1
+            print(f"\n🎉 IQ Option formatting verification PASSED!")
+        else:
+            print(f"\n❌ IQ Option formatting verification FAILED!")
+        
+        self.tests_run += 1
+        return all_passed
+
 def main():
-    print("🚀 Starting AI Trading System Backend Tests - Review Request Focus")
-    print("=" * 60)
+    print("🚀 Starting AI Trading System Backend Tests - IQ Option Formatting Review")
+    print("=" * 70)
     
     tester = AITradingSystemTester()
     
     # Run focused tests based on review request
     tests = [
-        tester.test_review_request_endpoints,  # Primary focus
-        tester.test_health_endpoint,           # Basic health check
+        tester.test_iq_option_formatting_verification,  # Primary focus - IQ Option formatting
+        tester.test_health_endpoint,                    # Basic health check
     ]
     
     for test in tests:
