@@ -620,6 +620,29 @@ class NotificationManager:
         self.settings = new_settings
         logger.info(f"Notification settings updated: {new_settings.dict()}")
     
+    def format_iq_symbol(self, symbol: str) -> str:
+        """Formata símbolo no padrão IQ Option (EUR/USD, BTC/USD, USD/JPY)."""
+        try:
+            if not symbol:
+                return "—"
+            if "/" in symbol:
+                return symbol
+            # Forex: 6 letras
+            if len(symbol) == 6 and symbol.isalpha():
+                return f"{symbol[:3]}/{symbol[3:]}"
+            # Crypto: BTCUSDT -> BTC/USD
+            if symbol.endswith("USDT"):
+                base = symbol[:-4]
+                return f"{base}/USD"
+            # Outros terminando com USD
+            if symbol.endswith("USD") and len(symbol) != 6:
+                base = symbol[:-3]
+                return f"{base}/USD"
+            return symbol
+        except Exception:
+            return symbol
+
+    
     def create_trading_alert(self, signal: TradingSignal) -> TradingAlert:
         """Cria um alerta de trading baseado no sinal"""
         
