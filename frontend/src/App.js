@@ -596,7 +596,7 @@ function App() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg text-green-400">Oportunidades ao vivo</CardTitle>
                   <Badge variant="outline" className="text-green-400 border-green-400/50">
-                    Score ≥ 55, RR ≥ 1.5 risco ≤ 1%
+                    Score ≥ {notificationSettings.min_score_threshold}% , RR ≥ {notificationSettings.min_rr_threshold} risco ≤ 1%
                   </Badge>
                 </div>
               </CardHeader>
