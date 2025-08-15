@@ -270,9 +270,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Frontend: Realtime stats cards from /api/stats"
-    - "Frontend: Oportunidades ao vivo atualização via WebSocket"
-    - "Frontend: Alertas Trading dropdown e badge em tempo real"
+    - "All frontend tasks completed and tested successfully"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
