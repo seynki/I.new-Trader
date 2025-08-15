@@ -697,7 +697,7 @@ function App() {
                       )}
                       <span className="text-sm text-gray-300">{iqOptionStatus.message}</span>
                     </div>
-                    {iqOptionStatus.email &amp;&amp; (
+                    {iqOptionStatus.email && (
                       <div className="text-xs text-gray-400">
                         <span>Email: {iqOptionStatus.email}</span>
                       </div>
