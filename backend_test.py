@@ -1060,16 +1060,202 @@ class AITradingSystemTester:
         self.tests_run += 1
         return all_passed
 
+    def test_minimum_score_threshold_validation(self):
+        """Test minimum score threshold logic at 70% as per review request"""
+        print(f"\n🎯 Testing Minimum Score Threshold Validation (70%)...")
+        
+        all_passed = True
+        
+        # 1) GET /api/notifications/settings and confirm min_score_threshold == 70
+        print(f"\n1️⃣ Testing GET /api/notifications/settings for min_score_threshold == 70...")
+        success, response = self.run_test(
+            "Get Notification Settings - Check Threshold",
+            "GET",
+            "api/notifications/settings",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            min_score_threshold = response.get('min_score_threshold')
+            if min_score_threshold == 70:
+                print(f"   ✅ min_score_threshold is correctly set to 70")
+            else:
+                print(f"   ❌ min_score_threshold is {min_score_threshold}, expected 70")
+                all_passed = False
+        else:
+            print(f"   ❌ Failed to get notification settings")
+            all_passed = False
+        
+        # 2) Wait for signals and verify alerts only created when confidence_score >= 70
+        print(f"\n2️⃣ Testing signal generation and alert creation with 70% threshold...")
+        print(f"   ⏳ Waiting for signals to be generated (system generates every ~8s)...")
+        
+        # Wait for multiple signal generation cycles
+        time.sleep(25)  # Wait ~3 cycles to get enough samples
+        
+        # Get recent alerts
+        success, response = self.run_test(
+            "Get Recent Alerts for Threshold Validation",
+            "GET",
+            "api/alerts?limit=10",
+            200
+        )
+        
+        if success and isinstance(response, dict) and 'alerts' in response:
+            alerts = response['alerts']
+            print(f"   📊 Found {len(alerts)} recent alerts")
+            
+            if len(alerts) >= 5:
+                # Sample 5 alerts and verify all have confidence_score >= 70
+                sample_alerts = alerts[:5]
+                valid_threshold_alerts = 0
+                
+                print(f"   🔍 Analyzing 5 sample alerts for confidence score >= 70...")
+                
+                for i, alert in enumerate(sample_alerts, 1):
+                    signal_id = alert.get('signal_id')
+                    if signal_id:
+                        # Get the corresponding signal
+                        signal_success, signal_response = self.run_test(
+                            f"Get Signal {i} for Alert Validation",
+                            "GET",
+                            f"api/signals?limit=50",  # Get more signals to find the matching one
+                            200
+                        )
+                        
+                        if signal_success and isinstance(signal_response, dict):
+                            signals = signal_response.get('signals', [])
+                            matching_signal = None
+                            
+                            for signal in signals:
+                                if signal.get('id') == signal_id:
+                                    matching_signal = signal
+                                    break
+                            
+                            if matching_signal:
+                                confidence_score = matching_signal.get('confidence_score')
+                                print(f"   📈 Alert {i}: Signal ID {signal_id[:8]}... has confidence_score = {confidence_score}")
+                                
+                                if confidence_score >= 70:
+                                    print(f"      ✅ Confidence score {confidence_score} >= 70 (threshold met)")
+                                    valid_threshold_alerts += 1
+                                else:
+                                    print(f"      ❌ Confidence score {confidence_score} < 70 (threshold violated)")
+                                    all_passed = False
+                            else:
+                                print(f"   ⚠️ Alert {i}: Could not find matching signal with ID {signal_id}")
+                        else:
+                            print(f"   ❌ Alert {i}: Failed to fetch signals for validation")
+                    else:
+                        print(f"   ❌ Alert {i}: Missing signal_id")
+                        all_passed = False
+                
+                print(f"   📊 Valid threshold alerts: {valid_threshold_alerts}/5")
+                
+                if valid_threshold_alerts == 5:
+                    print(f"   ✅ All sampled alerts have confidence_score >= 70")
+                else:
+                    print(f"   ❌ Some alerts violate the 70% threshold requirement")
+                    all_passed = False
+                    
+            else:
+                print(f"   ⚠️ Not enough alerts ({len(alerts)}) to sample 5 for validation")
+                # This might not be a failure if system is just starting
+                if len(alerts) > 0:
+                    print(f"   🔍 Checking available {len(alerts)} alerts...")
+                    for i, alert in enumerate(alerts, 1):
+                        signal_id = alert.get('signal_id')
+                        if signal_id:
+                            # Quick check on available alerts
+                            signal_success, signal_response = self.run_test(
+                                f"Get Signals for Available Alert {i}",
+                                "GET",
+                                f"api/signals?limit=20",
+                                200
+                            )
+                            
+                            if signal_success and isinstance(signal_response, dict):
+                                signals = signal_response.get('signals', [])
+                                for signal in signals:
+                                    if signal.get('id') == signal_id:
+                                        confidence_score = signal.get('confidence_score')
+                                        print(f"   📈 Available Alert {i}: confidence_score = {confidence_score}")
+                                        if confidence_score < 70:
+                                            print(f"      ❌ Threshold violation detected!")
+                                            all_passed = False
+                                        break
+        else:
+            print(f"   ❌ Failed to get alerts for threshold validation")
+            all_passed = False
+        
+        # 3) Test POST /api/notifications/settings accepts changes and setting 70 explicitly remains 70
+        print(f"\n3️⃣ Testing POST /api/notifications/settings with explicit 70% threshold...")
+        
+        test_settings = {
+            "user_id": "threshold_test_user",
+            "notifications_enabled": True,
+            "min_score_threshold": 70,  # Explicitly set to 70
+            "min_rr_threshold": 1.5,
+            "notification_types": ["websocket"],
+            "timeframes": ["1m", "5m", "15m"]
+        }
+        
+        success, response = self.run_test(
+            "Update Notification Settings - Set Threshold to 70",
+            "POST",
+            "api/notifications/settings",
+            200,
+            test_settings
+        )
+        
+        if success and isinstance(response, dict):
+            if response.get('status') == 'success':
+                print(f"   ✅ Settings update successful")
+                
+                # Verify the setting persisted by getting it back
+                success_verify, response_verify = self.run_test(
+                    "Verify Threshold Setting Persisted",
+                    "GET",
+                    "api/notifications/settings",
+                    200
+                )
+                
+                if success_verify and isinstance(response_verify, dict):
+                    persisted_threshold = response_verify.get('min_score_threshold')
+                    if persisted_threshold == 70:
+                        print(f"   ✅ Threshold correctly persisted as 70")
+                    else:
+                        print(f"   ❌ Threshold not persisted correctly: {persisted_threshold}")
+                        all_passed = False
+                else:
+                    print(f"   ❌ Failed to verify persisted settings")
+                    all_passed = False
+            else:
+                print(f"   ❌ Settings update failed: {response}")
+                all_passed = False
+        else:
+            print(f"   ❌ Failed to update notification settings")
+            all_passed = False
+        
+        if all_passed:
+            self.tests_passed += 1
+            print(f"\n🎉 Minimum score threshold validation (70%) PASSED!")
+        else:
+            print(f"\n❌ Minimum score threshold validation (70%) FAILED!")
+        
+        self.tests_run += 1
+        return all_passed
+
 def main():
-    print("🚀 Starting AI Trading System Backend Tests - IQ Option Formatting Review")
-    print("=" * 70)
+    print("🚀 Starting AI Trading System Backend Tests - Minimum Score Threshold Validation")
+    print("=" * 80)
     
     tester = AITradingSystemTester()
     
     # Run focused tests based on review request
     tests = [
-        tester.test_iq_option_formatting_verification,  # Primary focus - IQ Option formatting
-        tester.test_health_endpoint,                    # Basic health check
+        tester.test_minimum_score_threshold_validation,  # Primary focus - 70% threshold validation
+        tester.test_health_endpoint,                     # Basic health check
     ]
     
     for test in tests:
