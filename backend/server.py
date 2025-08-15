@@ -826,6 +826,8 @@ async def startup_event():
     market_simulator.running = True
     asyncio.create_task(market_simulator.generate_market_data())
     asyncio.create_task(advanced_signal_monitoring_task())
+    # iniciar simulador de saldo em "tempo real"
+    asyncio.create_task(iq_account_manager.run())
     logger.info("TypeIA-Trading system started")
 
 @app.on_event("shutdown")
