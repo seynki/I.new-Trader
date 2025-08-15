@@ -224,12 +224,12 @@ function App() {
     } catch (e) {
       console.warn('Falha ao buscar stats, usando cálculo local');
       // Fallback: compute from local signals
-      if (signals.length &gt; 0) {
-        const sc = signals.map(s =&gt; s.confidence_score || 0);
-        const rr = signals.map(s =&gt; s.risk_reward_ratio || 0);
-        const avg = sc.reduce((a,b) =&gt; a + b, 0) / sc.length;
+      if (signals.length > 0) {
+        const sc = signals.map(s => s.confidence_score || 0);
+        const rr = signals.map(s => s.risk_reward_ratio || 0);
+        const avg = sc.reduce((a,b) => a + b, 0) / sc.length;
         const max = Math.max(...sc);
-        const rrAvg = rr.reduce((a,b) =&gt; a + b, 0) / rr.length;
+        const rrAvg = rr.reduce((a,b) => a + b, 0) / rr.length;
         setStats({ scoreAvg: Math.round(avg), maxScore: max, rrAvg: Number(rrAvg.toFixed(2)), trending: 0 });
       }
     }
