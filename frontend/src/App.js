@@ -705,7 +705,7 @@ function App() {
                     <div className="text-xs text-gray-400">
                       <span>Conta: {iqOptionStatus.account_type ? iqOptionStatus.account_type.toUpperCase() : '—'}</span>
                     </div>
-                    {typeof iqOptionStatus.balance !== 'undefined' &amp;&amp; (
+                    {typeof iqOptionStatus.balance !== 'undefined' && (
                       <div className="text-xs text-gray-400">
                         <span>Saldo: ${iqOptionStatus.balance}</span>
                       </div>
