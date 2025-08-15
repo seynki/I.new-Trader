@@ -234,15 +234,18 @@ frontend:
 
   - task: "Realtime stats + sound on trading alerts"
     implemented: true
-    working: "NA"
+    working: true
     file: "App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added /api/stats consumption and live updating of Score médio, Maior score e RR médio. Also added WebAudio beep when a new trading alert arrives."
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - Realtime stats cards working correctly. Score médio: 62, Maior score: 71, RR médio: 1.8. Stats cards display proper values from /api/stats endpoint. Format and presence verified. Alert badge shows count (1) and dropdown functionality working."
 
   - task: "Notification System Frontend Integration"
     implemented: partially
