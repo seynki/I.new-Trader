@@ -719,10 +719,13 @@ function App() {
                       <Info className="h-3 w-3 inline mr-1" />
                       Apenas notificações ativadas
                     </div>
+                    {lastIqUpdate && (
+                      <div className="text-[10px] text-gray-500">Atualizado em {lastIqUpdate.toLocaleTimeString()}</div>
+                    )}
                   </>
                 ) : (
                   <div className="text-sm text-gray-400">
-                    Clique para testar conexão
+                    Clique em "Testar Conexão" para ver o status
                   </div>
                 )}
               </CardContent>
