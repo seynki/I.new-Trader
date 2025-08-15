@@ -251,11 +251,22 @@ function App() {
     try {
       const response = await axios.post(`${BACKEND_URL}/api/iq-option/test-connection`);
       setIqOptionStatus(response.data);
+      setLastIqUpdate(new Date());
     } catch (error) {
       console.error('Erro ao testar conexão IQ Option:', error);
       setIqOptionStatus({ status: 'error', message: 'Connection failed' });
     }
   };
+
+  // Auto-refresh IQ Option status every 10s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      testIQOptionConnection();
+    }, 10000);
+    // first fetch on mount
+    testIQOptionConnection();
+    return () => clearInterval(interval);
+  }, []);
 
   const updateNotificationSettings = async (newSettings) => {
     try {
