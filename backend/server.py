@@ -789,10 +789,35 @@ class NotificationManager:
             "justification": signal.justification
         }
 
+# Gerenciador simples de conta IQ Option (simulada para valor em tempo real)
+class IQAccountManager:
+    def __init__(self):
+        self.account_type = "demo"
+        self.balance = 10000.00
+        self.currency = "USD"
+        self.last_update = datetime.now()
+
+    def tick(self):
+        # Simula pequenas variações de saldo
+        drift = random.uniform(-1.5, 1.5)
+        self.balance = max(0.0, round(self.balance + drift, 2))
+        self.last_update = datetime.now()
+
+    async def run(self):
+        while True:
+            try:
+                self.tick()
+                # Opcional: transmitir via WS no futuro
+                await asyncio.sleep(5)
+            except Exception as e:
+                logger.error(f"IQAccountManager error: {e}")
+                await asyncio.sleep(5)
+
 # Instâncias globais
 market_simulator = AdvancedMarketSimulator()
 signal_generator = AdvancedSignalGenerator()
 notification_manager = NotificationManager()
+iq_account_manager = IQAccountManager()
 active_connections: List[WebSocket] = []
 
 @app.on_event("startup")
