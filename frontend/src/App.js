@@ -273,7 +273,7 @@ function App() {
   }, []);
 
   const formatPrice = (price, symbol) => {
-    if (!price &amp;&amp; price !== 0) return '0.00';
+    if (!price && price !== 0) return '0.00';
     if (price >= 10000) {
       return Math.round(price).toLocaleString();
     } else if (price >= 1000) {
