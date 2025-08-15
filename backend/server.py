@@ -1046,20 +1046,18 @@ async def mark_alert_read(alert_id: str):
 
 @app.post("/api/iq-option/test-connection")
 async def test_iq_option_connection():
-    """Testa a conexão com IQ Option (simulado)"""
+    """Retorna status e saldo simulado em tempo real (sem login real)"""
     credentials = notification_manager.iq_option_credentials
-    
-    # Simulação de teste de conexão
-    await asyncio.sleep(1)  # Simular delay de conexão
-    
+    # pequeno delay para simular I/O
+    await asyncio.sleep(0.3)
     return {
         "status": "success",
         "message": "Connection test completed",
         "email": credentials["email"],
         "connected": True,
-        "account_type": "demo",
-        "balance": 10000.00,
-        "note": "This is a simulated connection for notification purposes only"
+        "account_type": iq_account_manager.account_type,
+        "balance": iq_account_manager.balance,
+        "note": "Simulação sem execução de ordens. Saldo varia em tempo real."
     }
 
 @app.post("/api/iq-option/format-signal/{signal_id}")
