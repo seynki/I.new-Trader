@@ -699,17 +699,13 @@ class NotificationManager:
         """Cria um alerta de trading baseado no sinal"""
         priority = "high" if signal.confidence_score >= 80 else "medium" if signal.confidence_score >= 70 else "low"
         
-        title = f"🎯 {signal.signal_type} Signal - {signal.symbol}"
+        sym_fmt = self.format_iq_symbol(signal.symbol)
+        title = f"🎯 {signal.signal_type} Signal - {sym_fmt}"
         message = (
-            f"Oportunidade {signal.signal_type} detectada!\n"
-            f"Ativo: {signal.symbol}\n"
-            f"Score: {signal.confidence_score}%\n"
-            f"RR: {signal.risk_reward_ratio}:1\n"
-            f"Entrada: {signal.entry_price:.4f}\n"
-            f"Stop: {signal.stop_loss:.4f}\n"
-            f"Alvo: {signal.take_profit:.4f}\n"
-            f"Qualidade: {signal.quality}\n"
-            f"Regime: {signal.regime}"
+            f"Oportunidade {signal.signal_type} detectada! Ativo: {sym_fmt} | "
+            f"Score: {signal.confidence_score}% | RR: {signal.risk_reward_ratio}:1 | "
+            f"Entrada: {signal.entry_price:.4f} | Stop: {signal.stop_loss:.4f} | Alvo: {signal.take_profit:.4f} | "
+            f"Qualidade: {signal.quality} | Regime: {signal.regime}"
         )
         
         alert = TradingAlert(
