@@ -469,12 +469,20 @@ function App() {
                         </div>
                       )}
                     </div>
-                    <div className="p-3 border-t border-gray-700">
+                    <div className="p-3 border-t border-gray-700 flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAlerts([])}
+                        className="text-xs text-gray-300 border-gray-600 hover:bg-gray-800"
+                      >
+                        Limpar alertas
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowNotifications(false)}
-                        className="w-full text-xs text-gray-400 hover:text-green-400"
+                        className="flex-1 text-xs text-gray-400 hover:text-green-400"
                       >
                         Fechar
                       </Button>
