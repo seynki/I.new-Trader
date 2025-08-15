@@ -255,16 +255,16 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Real-time Opportunities and Trading Alerts Fix"
-    - "WebSocket Streaming Fix and Number Formatting"
-    - "IQ Option Symbol Format and Design Update"
+    - "Frontend: Realtime stats cards from /api/stats"
+    - "Frontend: Oportunidades ao vivo atualização via WebSocket"
+    - "Frontend: Alertas Trading dropdown e badge em tempo real"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
-    message: "✅ COMPLETED: Implemented IQ Option symbol formatting and design improvements. Updated BTCUSDT → BTC/USD (OTC) format, changed symbol icons from orange to black transparent background, improved number alignment to prevent overlapping. Applied changes to opportunities table, notifications, and market data sections. Ready for frontend testing to verify visual improvements and symbol formatting."
+    message: "🧪 Solicitação: Executar testes automatizados de frontend. Verificar: (1) Cards de stats mostram valores reais de /api/stats e atualizam quando chegam novos sinais; (2) Oportunidades ao vivo lista popula em tempo real via WebSocket; (3) Alertas Trading: badge incrementa quando chega novo alerta e dropdown lista itens; (4) Market Data não contém SP500/NAS100 e símbolos formatados (EUR/USD, BTC/USD); (5) IQ Option Status: botão Testar Conexão exibe email, tipo de conta e saldo."
   - agent: "testing"
     message: "✅ BACKEND TESTING COMPLETED - All high-priority backend tasks are working correctly. Notification system fully functional with proper endpoint responses, alert generation, and WebSocket connectivity. IQ Option integration working for notifications. Signal processing enhanced and generating quality signals. Fixed WebSocket dependency issue by installing uvicorn[standard] and websockets. System is ready for production use. All critical backend functionality verified and operational."
   - agent: "testing"
