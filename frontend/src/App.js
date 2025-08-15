@@ -306,7 +306,7 @@ function App() {
     }
 
     // Symbols ending with USD but not 6 letters (rare here)
-    if (/USD$/.test(symbol) &amp;&amp; !isForexPair(symbol)) {
+    if (/USD$/.test(symbol) && !isForexPair(symbol)) {
       const base = symbol.replace('USD', '');
       const suffix = isWeekend() ? ' (OTC)' : '';
       return `${base}/USD${suffix}`;
