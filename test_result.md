@@ -285,8 +285,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Backend: POST /api/trading/quick-order executa ordem real/demo com fx-iqoption; validar troca de conta e retorno order_id"
-    - "Backend: Fallback iqoptionapi quando fx-iqoption indisponível"
+    - "Frontend: Buy/Sell mostra loading, sucesso com order_id/provider e erro real sem simulação"
+    - "Backend: POST /api/trading/quick-order retorna order_id/provider quando sucesso"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
