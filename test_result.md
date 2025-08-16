@@ -214,7 +214,7 @@ frontend:
     file: "server.py, App.js"
     stuck_count: 0
     priority: "critical"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
