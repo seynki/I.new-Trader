@@ -30,3 +30,5 @@ typer>=0.9.0
 plyer>=2.1.0
 asyncio>=3.4.3
 apscheduler>=3.10.4
+
+iqoptionapi>=0.3.6
