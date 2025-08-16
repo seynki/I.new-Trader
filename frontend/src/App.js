@@ -312,7 +312,9 @@ function App() {
   const QUICK_API = `${BACKEND_URL}/api/trading/quick-order`;
 
   const quickOrder = async (asset, direction) => {
+    const key = `${asset}:${direction}`;
     try {
+      setPendingOrder(prev => ({ ...prev, [key]: true }));
       const payload = {
         asset,
         direction, // 'call' or 'put'
@@ -321,18 +323,34 @@ function App() {
         account_type: quickAccountType, // 'demo' | 'real'
         option_type: quickOptionType // 'binary' | 'digital'
       };
-      await axios.post(QUICK_API, payload);
-      // feedback básico (fase 1)
+      const res = await axios.post(QUICK_API, payload);
+      const data = res?.data || {};
+
+      // Sucesso real com order_id
       setAlerts(prev => [{
-        id: `qo-${Date.now()}`,
+        id: data.order_id || `qo-${Date.now()}`,
         title: `${direction === 'call' ? 'BUY' : 'SELL'} • ${formatIQOptionSymbol(asset)}`,
-        message: `Ordem rápida enviada • ${payload.amount} • exp ${payload.expiration}m • ${payload.account_type.toUpperCase()} • ${payload.option_type}`,
-        priority: 'medium',
+        message: `${data.message || 'Ordem enviada'}${data.order_id ? ` (ID: ${data.order_id})` : ''}${data.echo?.provider ? ` • via ${data.echo.provider}` : ''}`,
+        priority: 'high',
         timestamp: new Date().toISOString(),
-        signal_type: direction === 'call' ? 'buy' : 'sell'
+        signal_type: direction === 'call' ? 'buy' : 'sell',
+        symbol: asset
       }, ...prev].slice(0, 10));
     } catch (e) {
+      // Erro real do backend (sem simulação)
+      const errMsg = e?.response?.data?.detail || e?.message || 'Falha ao enviar ordem';
+      setAlerts(prev => [{
+        id: `qo-err-${Date.now()}`,
+        title: `ERRO • ${direction === 'call' ? 'BUY' : 'SELL'} • ${formatIQOptionSymbol(asset)}`,
+        message: errMsg,
+        priority: 'high',
+        timestamp: new Date().toISOString(),
+        signal_type: direction === 'call' ? 'buy' : 'sell',
+        symbol: asset
+      }, ...prev].slice(0, 10));
       console.error('Quick order error', e);
+    } finally {
+      setPendingOrder(prev => ({ ...prev, [key]: false }));
     }
   };
 
