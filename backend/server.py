@@ -117,6 +117,7 @@ class TradingAlert(BaseModel):
     message: str
     priority: str  # "low", "medium", "high", "critical"
     timestamp: datetime
+    signal_type: Optional[str] = None  # 'buy' or 'sell' (en-US)
     read: bool = False
     iq_option_ready: bool = False
 
