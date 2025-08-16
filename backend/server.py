@@ -1191,6 +1191,24 @@ async def get_system_stats():
         }
     }
 
+@app.get("/api/symbols")
+async def list_symbols():
+    """Lista símbolos disponíveis com tipo e liquidez aproximada."""
+    items = []
+    for sym, cfg in market_simulator.symbols.items():
+        price = market_simulator.current_prices.get(sym, cfg.get("base_price", 0))
+        hist = market_simulator.price_history.get(sym, [])
+        volume = hist[-1]["volume"] if hist else random.uniform(1e5, 1e6)
+        liquidity = "high" if volume > 2e6 else "medium" if volume > 5e5 else "low"
+        items.append({
+            "symbol": sym,
+            "type": cfg.get("type", "unknown"),
+            "liquidity": liquidity,
+            "volume": volume,
+            "price": price,
+        })
+    return {"symbols": items}
+
 # WebSocket para dados em tempo real
 @app.websocket("/api/ws")
 async def websocket_endpoint(websocket: WebSocket):
