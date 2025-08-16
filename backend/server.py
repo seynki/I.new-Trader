@@ -1435,6 +1435,77 @@ async def format_signal_for_iq_option(signal_id: str):
 
 from uuid import uuid4
 
+# Diagnóstico de conectividade e credenciais com IQ Option (não expõe segredos)
+@app.get("/api/iq-option/diagnostics")
+async def iq_option_diagnostics():
+    """Executa checagens rápidas para identificar a causa de erros de conexão.
+    Retorna status de variáveis de ambiente, DNS, TCP:443 e HTTP GET básico.
+    Não realiza login e não expõe valores de credenciais.
+    """
+    import socket
+    import ssl
+    from concurrent.futures import ThreadPoolExecutor
+    import requests
+
+    results: Dict[str, Any] = {
+        "env": {
+            "IQ_EMAIL_present": bool(IQ_EMAIL),
+            "IQ_PASSWORD_present": bool(IQ_PASSWORD),
+        },
+        "network": {
+            "dns_resolved": False,
+            "dns_ip": None,
+            "tcp_443_ok": False,
+            "https_get_ok": False,
+            "errors": []
+        }
+    }
+
+    target_host = "iqoption.com"
+
+    # DNS
+    try:
+        def _resolve():
+            return socket.gethostbyname(target_host)
+        ip = await asyncio.to_thread(_resolve)
+        results["network"]["dns_resolved"] = True
+        results["network"]["dns_ip"] = ip
+    except Exception as e:
+        results["network"]["errors"].append(f"DNS: {type(e).__name__}: {e}")
+
+    # TCP 443
+    try:
+        def _tcp_check():
+            with socket.create_connection((target_host, 443), timeout=3) as s:
+                return True
+        ok = await asyncio.to_thread(_tcp_check)
+        results["network"]["tcp_443_ok"] = bool(ok)
+    except Exception as e:
+        results["network"]["errors"].append(f"TCP443: {type(e).__name__}: {e}")
+
+    # HTTPS GET básico
+    try:
+        def _https_get():
+            return requests.get(f"https://{target_host}", timeout=5).status_code
+        status = await asyncio.to_thread(_https_get)
+        results["network"]["https_get_ok"] = (200 <= int(status) < 500)
+    except Exception as e:
+        results["network"]["errors"].append(f"HTTPS: {type(e).__name__}: {e}")
+
+    # Conclusão resumida
+    summary = "OK"
+    if not results["env"]["IQ_EMAIL_present"] or not results["env"]["IQ_PASSWORD_present"]:
+        summary = "Credenciais ausentes no backend (.env)"
+    elif not results["network"]["dns_resolved"]:
+        summary = "Falha de DNS (ambiente sem saída para resolver host)"
+    elif not results["network"]["tcp_443_ok"]:
+        summary = "Porta 443 bloqueada no ambiente"
+    elif not results["network"]["https_get_ok"]:
+        summary = "Saída HTTP/HTTPS bloqueada no ambiente"
+
+    return {"status": "success", "summary": summary, **results}
+
+
 class QuickOrderRequest(BaseModel):
     asset: str
     direction: str  # 'call' or 'put'
