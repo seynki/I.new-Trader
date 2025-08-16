@@ -542,10 +542,13 @@ class AdvancedSignalGenerator:
         total_score = trend_score + momentum_score + vol_score
         
         # Force 40% of signals to be SELL to ensure balance
-        if random.random() < 0.4:
+        random_val = random.random()
+        if random_val < 0.4:
             signal_type = "SELL"
+            logger.info(f"Forcing SELL signal for {symbol} (random: {random_val:.3f})")
         else:
             signal_type = "BUY"
+            logger.info(f"Generating BUY signal for {symbol} (random: {random_val:.3f})")
         
         # Filtro de confiança mínima
         if confidence < 60:
