@@ -98,11 +98,16 @@ class NotificationSettings(BaseModel):
     user_id: str = "default_user"
     iq_option_email: str = ""
     notifications_enabled: bool = True
+    alert_sound_enabled: bool = True
     min_score_threshold: int = 70
     min_rr_threshold: float = 1.5
     max_risk_threshold: float = 1.0
     notification_types: List[str] = ["desktop", "websocket"]
     timeframes: List[str] = ["1m", "5m", "15m"]
+    selected_symbols: List[str] = []
+    selected_regimes: List[str] = []
+    since_minutes: int = 60
+    max_per_symbol: int = 5
 
 class TradingAlert(BaseModel):
     id: str
