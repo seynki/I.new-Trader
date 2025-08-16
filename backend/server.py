@@ -74,11 +74,15 @@ async def _connect_fx_client():
             # libs novas costumam ser async; tentar await connect()
             candidate = FXClient(email=IQ_EMAIL, password=IQ_PASSWORD)
             try:
-                ok, reason = await candidate.connect()
+                # Adicionar timeout de 15 segundos para conexão
+                ok, reason = await asyncio.wait_for(candidate.connect(), timeout=15.0)
             except TypeError:
                 # algumas versões retornam bool direto
-                ok = await candidate.connect()
+                ok = await asyncio.wait_for(candidate.connect(), timeout=15.0)
                 reason = None
+            except asyncio.TimeoutError:
+                logger.error("Timeout ao conectar fx-iqoption (15s)")
+                return None
             if ok:
                 _fx_client = candidate
                 logger.info("fx-iqoption conectado (IQOption)")
