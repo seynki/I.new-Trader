@@ -532,16 +532,26 @@ function App() {
                 </select>
 
                 <select 
-                  value={selectedTimeframe}
-                  onChange={(e) => setSelectedTimeframe(e.target.value)}
+                  value={selectedRegime}
+                  onChange={(e) => setSelectedRegime(e.target.value)}
                   className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1 text-sm text-green-400 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
-                  <option value="1m">1m</option>
-                  <option value="5m">5m</option>
-                  <option value="15m">15m</option>
-                  <option value="1h">1h</option>
-                  <option value="4h">4h</option>
-                  <option value="1d">1d</option>
+                  <option value="All">All regimes</option>
+                  <option value="trending">Trending</option>
+                  <option value="sideways">Sideways</option>
+                  <option value="high_vol">High vol</option>
+                  <option value="low_vol">Low vol</option>
+                </select>
+
+                <select 
+                  value={sinceMinutes}
+                  onChange={(e) => setSinceMinutes(parseInt(e.target.value||'60', 10))}
+                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1 text-sm text-green-400 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="15">Last 15m</option>
+                  <option value="60">Last 1h</option>
+                  <option value="240">Last 4h</option>
+                  <option value="1440">Last 24h</option>
                 </select>
 
                 {/* Sensitivity and filters */}
