@@ -75,6 +75,8 @@ function App() {
   const wsRef = useRef(null);
   const audioCtxRef = useRef(null);
 
+  const [pendingOrder, setPendingOrder] = useState({});
+
   // Helpers: weekend and symbol types
   const isWeekend = () => {
     const d = new Date();
