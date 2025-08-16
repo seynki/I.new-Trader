@@ -1885,6 +1885,158 @@ class AITradingSystemTester:
         self.tests_run += 1
         return all_passed
 
+    def test_review_request_focused(self):
+        """Test specific endpoints mentioned in the current review request"""
+        print(f"\n🎯 FOCUSED REVIEW REQUEST TESTING...")
+        print(f"Testing: Backend sanity + Quick Order API validation")
+        
+        all_passed = True
+        
+        # 1) Backend Sanity - GET /api/stats
+        print(f"\n1️⃣ Backend Sanity: GET /api/stats...")
+        success, response = self.run_test(
+            "Stats Endpoint - Review Request",
+            "GET",
+            "api/stats",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            required_fields = ['score_avg', 'max_score', 'rr_avg', 'trending_markets']
+            for field in required_fields:
+                if field in response:
+                    print(f"   ✅ Required field '{field}' present: {response[field]}")
+                else:
+                    print(f"   ❌ Required field '{field}' missing")
+                    all_passed = False
+        else:
+            all_passed = False
+        
+        # 2) Backend Sanity - GET /api/signals?limit=3
+        print(f"\n2️⃣ Backend Sanity: GET /api/signals?limit=3...")
+        success, response = self.run_test(
+            "Signals Endpoint - Review Request",
+            "GET",
+            "api/signals?limit=3",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            if 'signals' in response and isinstance(response['signals'], list):
+                signals = response['signals']
+                print(f"   ✅ Found signals[] with {len(signals)} signals")
+                
+                if signals:
+                    sample_signal = signals[0]
+                    required_fields = ['confidence_score', 'risk_reward_ratio']
+                    for field in required_fields:
+                        if field in sample_signal:
+                            print(f"   ✅ Required field '{field}' present: {sample_signal[field]}")
+                        else:
+                            print(f"   ❌ Required field '{field}' missing")
+                            all_passed = False
+                else:
+                    print(f"   ⚠️ No signals available, but endpoint working")
+            else:
+                print(f"   ❌ 'signals' field missing or not a list")
+                all_passed = False
+        else:
+            all_passed = False
+        
+        # 3) Quick Order API - Valid payload test
+        print(f"\n3️⃣ Quick Order API: Valid payload test...")
+        valid_payload = {
+            "asset": "EURUSD",
+            "direction": "call",
+            "amount": 10,
+            "expiration": 1,
+            "account_type": "demo",
+            "option_type": "binary"
+        }
+        
+        success, response = self.run_test(
+            "Quick Order - Valid Payload",
+            "POST",
+            "api/trading/quick-order",
+            [200, 500, 502],  # Accept 500/502 as mentioned in review request
+            valid_payload
+        )
+        
+        if success:
+            if isinstance(response, dict):
+                print(f"   📊 Response received: {response}")
+                
+                # Check if it's a success response
+                if response.get('success') == True:
+                    print(f"   ✅ Success response with order_id: {response.get('order_id')}")
+                    print(f"   ✅ Provider: {response.get('echo', {}).get('provider', 'N/A')}")
+                elif 'detail' in response:
+                    # Expected error in preview environment
+                    detail = response['detail']
+                    if 'conectar' in detail.lower() or 'connection' in detail.lower():
+                        print(f"   ✅ Expected connection error in preview environment: {detail}")
+                    else:
+                        print(f"   ⚠️ Unexpected error detail: {detail}")
+                else:
+                    print(f"   ⚠️ Unexpected response format")
+            else:
+                print(f"   ⚠️ Non-JSON response: {response}")
+        else:
+            all_passed = False
+        
+        # 4) Quick Order API - Validation tests
+        print(f"\n4️⃣ Quick Order API: Validation tests...")
+        
+        validation_tests = [
+            {
+                "name": "amount <= 0",
+                "payload": {**valid_payload, "amount": 0},
+                "expected_status": 400
+            },
+            {
+                "name": "expiration = 0",
+                "payload": {**valid_payload, "expiration": 0},
+                "expected_status": 400
+            },
+            {
+                "name": "invalid option_type",
+                "payload": {**valid_payload, "option_type": "turbo"},
+                "expected_status": 400
+            },
+            {
+                "name": "invalid direction",
+                "payload": {**valid_payload, "direction": "buy"},
+                "expected_status": 400
+            }
+        ]
+        
+        for test_case in validation_tests:
+            print(f"\n   Testing: {test_case['name']}")
+            success, response = self.run_test(
+                f"Quick Order Validation - {test_case['name']}",
+                "POST",
+                "api/trading/quick-order",
+                test_case['expected_status'],
+                test_case['payload']
+            )
+            
+            if success:
+                print(f"   ✅ Correctly returned {test_case['expected_status']} for {test_case['name']}")
+                if isinstance(response, dict) and 'detail' in response:
+                    print(f"      Error detail: {response['detail']}")
+            else:
+                print(f"   ❌ Failed validation for {test_case['name']}")
+                all_passed = False
+        
+        if all_passed:
+            self.tests_passed += 1
+            print(f"\n🎉 FOCUSED REVIEW REQUEST TESTS PASSED!")
+        else:
+            print(f"\n❌ FOCUSED REVIEW REQUEST TESTS FAILED!")
+        
+        self.tests_run += 1
+        return all_passed
+
 def main():
     print("🚀 Starting AI Trading System Backend Tests - Current Review Request")
     print("=" * 80)
