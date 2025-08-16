@@ -1595,14 +1595,14 @@ class AITradingSystemTester:
         return all_passed
 
 def main():
-    print("🚀 Starting AI Trading System Backend Tests - SELL Signals Review Request")
+    print("🚀 Starting AI Trading System Backend Tests - Quick Order API Review Request")
     print("=" * 80)
     
     tester = AITradingSystemTester()
     
     # Run focused tests based on review request
     tests = [
-        tester.test_sell_signals_review_request,  # Primary focus - SELL signals testing
+        tester.test_quick_order_endpoint,         # Primary focus - Quick Order API testing
         tester.test_health_endpoint,              # Basic health check
     ]
     
