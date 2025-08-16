@@ -207,15 +207,18 @@ frontend:
 
   - task: "Real-time Opportunities and Trading Alerts Fix"
     implemented: true
-    working: true
+    working: false
     file: "server.py, App.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "critical"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "✅ FIXED both critical issues: 1) Real-time opportunities now working - WebSocket receiving new signals, prices updating, IQ Option formatting active. 2) Trading alerts now working - notifications appearing with badge, alerts panel functional, threshold adjusted from 70% to 60%. Fixed missing functions should_notify() and create_trading_alert(), corrected WebSocket URL for HTTPS→WSS, resolved React key duplications. System now fully functional with 6 alerts displayed and real-time streaming active."
+      - working: false
+        agent: "testing"
+        comment: "❌ FALHOU - Testes automatizados revelaram problemas críticos no feedback Buy/Sell: 1) LOADING STATE: Botões Buy/Sell NÃO mostram 'Enviando...' nem ficam disabled durante requisições POST /api/trading/quick-order. Estado permanece 'Buy'/'Sell' e enabled=false mesmo durante chamadas de rede. 2) ALERTAS: Nenhum alerta é gerado após cliques Buy/Sell, dropdown de notificações permanece vazio (0 alertas). 3) REQUISIÇÕES: POST para /api/trading/quick-order é enviado corretamente, mas não há feedback visual nem alertas resultantes. 4) UI: Seção 'Oportunidades ao vivo' carrega corretamente com 10 oportunidades, botões são clicáveis, dropdown funciona. CONCLUSÃO: Implementação do feedback Buy/Sell está incompleta - falta estado de loading nos botões e geração de alertas após requisições."
 
   - task: "WebSocket Streaming Fix and Number Formatting"
     implemented: true
