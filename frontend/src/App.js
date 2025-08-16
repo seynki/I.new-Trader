@@ -717,7 +717,7 @@ function App() {
                       <div className="text-xs text-green-400 font-mono text-center">{signal.risk_reward_ratio ?? '-'}</div>
                       <div className="text-xs text-blue-400 font-mono text-center">0.69</div>
                       <div className={`text-xs font-semibold ${signal.signal_type === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
-                        {signal.signal_type === 'BUY' ? 'buy' : 'sell'}
+                        {signal.signal_type === 'BUY' ? 'BUY' : 'SELL'}
                       </div>
                       <div className="col-span-1 text-xs text-gray-300 font-mono text-right">{formatPrice(signal.entry_price, signal.symbol)}</div>
                       <div className="col-span-1 text-xs text-red-400 font-mono text-right">{formatPrice(signal.stop_loss, signal.symbol)}</div>
