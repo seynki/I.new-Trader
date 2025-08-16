@@ -30,7 +30,12 @@ class AITradingSystemTester:
             elif method == 'POST':
                 response = requests.post(url, json=data, headers=headers, timeout=timeout)
 
-            success = response.status_code == expected_status
+            # Handle multiple expected status codes
+            if isinstance(expected_status, list):
+                success = response.status_code in expected_status
+            else:
+                success = response.status_code == expected_status
+                
             if success:
                 self.tests_passed += 1
                 print(f"✅ Passed - Status: {response.status_code}")
@@ -41,7 +46,8 @@ class AITradingSystemTester:
                 except:
                     return True, response.text
             else:
-                print(f"❌ Failed - Expected {expected_status}, got {response.status_code}")
+                expected_str = str(expected_status) if not isinstance(expected_status, list) else f"one of {expected_status}"
+                print(f"❌ Failed - Expected {expected_str}, got {response.status_code}")
                 print(f"   Response: {response.text[:200]}...")
                 return False, {}
 
