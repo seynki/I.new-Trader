@@ -139,25 +139,35 @@ async def _switch_balance(client_kind: str, client_obj, mode: str):
     loop = asyncio.get_event_loop()
     try:
         if client_kind == "fx":
-            # Tentar métodos conhecidos
-            # algumas versões: change_balance("PRACTICE"|"REAL")
+            # Tentar métodos conhecidos com timeout
             func = getattr(client_obj, "change_balance", None)
             if asyncio.iscoroutinefunction(func):
-                await func(target)
+                await asyncio.wait_for(func(target), timeout=10.0)
             elif callable(func):
-                await loop.run_in_executor(None, func, target)
+                await asyncio.wait_for(
+                    loop.run_in_executor(None, func, target), 
+                    timeout=10.0
+                )
             else:
                 # outras versões: set_balance
                 func2 = getattr(client_obj, "set_balance", None)
                 if asyncio.iscoroutinefunction(func2):
-                    await func2(target)
+                    await asyncio.wait_for(func2(target), timeout=10.0)
                 elif callable(func2):
-                    await loop.run_in_executor(None, func2, target)
+                    await asyncio.wait_for(
+                        loop.run_in_executor(None, func2, target), 
+                        timeout=10.0
+                    )
         else:
             # iqoptionapi
             func = getattr(client_obj, "change_balance", None)
             if callable(func):
-                await loop.run_in_executor(None, func, target)
+                await asyncio.wait_for(
+                    loop.run_in_executor(None, func, target), 
+                    timeout=10.0
+                )
+    except asyncio.TimeoutError:
+        logger.warning(f"Timeout ao trocar conta para {target} (10s)")
     except Exception as e:
         logger.warning(f"Falha ao trocar conta para {target}: {e}")
 
