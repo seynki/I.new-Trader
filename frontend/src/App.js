@@ -830,6 +830,7 @@ function App() {
                         ); })()}
                         {(() => { const key = `${signal.symbol}:put`; const loading = !!pendingOrder[key]; return (
                           <button
+                            data-testid={`sell-btn-${signal.symbol}`}
                             onClick={()=> quickOrder(signal.symbol, 'put')}
                             className={`text-[10px] px-2 py-1 rounded ${loading ? 'bg-red-900 cursor-not-allowed opacity-70' : 'bg-red-700 hover:bg-red-600'} text-white`}
                             title="Sell (put)"
