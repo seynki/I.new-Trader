@@ -278,7 +278,7 @@ test_plan:
 
 agent_communication:
   - agent: "main"
-    message: "🧪 Solicitação: Executar testes automatizados de frontend. Verificar: (1) Cards de stats mostram valores reais de /api/stats e atualizam quando chegam novos sinais; (2) Oportunidades ao vivo lista popula em tempo real via WebSocket; (3) Alertas Trading: badge incrementa quando chega novo alerta e dropdown lista itens; (4) Market Data não contém SP500/NAS100 e símbolos formatados (EUR/USD, BTC/USD); (5) IQ Option Status: botão Testar Conexão exibe email, tipo de conta e saldo."
+    message: "🧪 Atualização: Implementada Fase 1. Backend: novo endpoint POST /api/trading/quick-order (simulado). Frontend: botões Buy/Sell por linha e controles (Demo/Real, Binary/Digital, Valor, Expiração). Por favor testar: (1) POST /api/trading/quick-order com payload válido; (2) UI envia requisição ao clicar Buy/Sell e adiciona um alerta local de confirmação."
   - agent: "testing"
     message: "✅ BACKEND TESTING COMPLETED - All high-priority backend tasks are working correctly. Notification system fully functional with proper endpoint responses, alert generation, and WebSocket connectivity. IQ Option integration working for notifications. Signal processing enhanced and generating quality signals. Fixed WebSocket dependency issue by installing uvicorn[standard] and websockets. System is ready for production use. All critical backend functionality verified and operational."
   - agent: "testing"
