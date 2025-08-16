@@ -105,6 +105,18 @@
 user_problem_statement: "Manter a bolinha verde em troca do cerebro verde atras do nome e deixar um design mais espaçoso para caber sem bugs como essas letras em cima das outras, com uma conta do iq option e fazer operaçoes ao vivo ou notificar ao vivo qual a melhor decisão"
 
 backend:
+  - task: "IQ Option Diagnostics Endpoint"
+    implemented: true
+    working: "NA"
+    file: "server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Adicionado endpoint GET /api/iq-option/diagnostics que valida: presença de credenciais no backend, resolução DNS de iqoption.com, conexão TCP:443 e HTTPS GET simples. Útil para diferenciar erro de credenciais x bloqueio de rede no ambiente preview."
+
   - task: "Review Request Endpoint Testing"
     implemented: true
     working: true
