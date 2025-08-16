@@ -789,6 +789,17 @@ function App() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-300">Alert sound</span>
+                  <Switch
+                    checked={notificationSettings.alert_sound_enabled}
+                    onCheckedChange={(checked) => updateNotificationSettings({
+                      ...notificationSettings,
+                      alert_sound_enabled: checked
+                    })}
+                    className="data-[state=checked]:bg-green-600"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-300">Score mínimo</span>
                   <span className="text-sm text-green-400">{notificationSettings.min_score_threshold}%</span>
                 </div>
