@@ -162,6 +162,21 @@ backend:
         agent: "testing"
         comment: "✅ PASSED - Enhanced signal processing working correctly. Signals being generated every 8 seconds with proper confidence scores (60-71 range), risk/reward ratios (1.5+), and justifications. Signal monitoring task active and creating alerts. All signals have valid structure with id, symbol, signal_type, confidence_score, entry_price, stop_loss, take_profit, risk_reward_ratio. System stats show 28 total signals generated with proper distribution."
 
+  - task: "Quick Order API: POST /api/trading/quick-order should accept payload and return success (fase 1)"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented POST /api/trading/quick-order endpoint for Fase 1. Accepts payload with asset, direction, amount, expiration, account_type, option_type. Returns success response with order_id and echo of sent fields. Includes proper validation for all fields."
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - Quick Order API endpoint working perfectly. Valid payload test: Returns 200 OK with success=true, message contains 'fase 1', valid UUID order_id, and complete echo of sent fields. All negative validations working: direction 'buy' → 400, account_type 'paper' → 400, option_type 'turbo' → 400, amount 0 → 400, expiration 0 → 400, expiration 61 → 400. All error messages in Portuguese as expected. Ingress compatibility confirmed with /api/ prefix. All 9 test cases passed (100% success rate)."
+
 frontend:
   - task: "Header Design Improvement - Brain to Green Circle"
     implemented: true
