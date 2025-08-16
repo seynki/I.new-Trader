@@ -46,11 +46,19 @@ function App() {
   const [selectedAssets, setSelectedAssets] = useState('All');
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationSettings, setNotificationSettings] = useState({
+    user_id: 'default_user',
+    iq_option_email: '',
     notifications_enabled: true,
+    alert_sound_enabled: true,
     min_score_threshold: 70,
     min_rr_threshold: 1.5,
+    max_risk_threshold: 1.0,
     notification_types: ["websocket"],
-    timeframes: ["1m", "5m", "15m"]
+    timeframes: ["1m", "5m", "15m"],
+    selected_symbols: [],
+    selected_regimes: [],
+    since_minutes: 60,
+    max_per_symbol: 5,
   });
   const [iqOptionStatus, setIqOptionStatus] = useState(null);
   const [lastIqUpdate, setLastIqUpdate] = useState(null);
