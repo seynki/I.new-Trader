@@ -705,7 +705,7 @@ class NotificationManager:
         priority = "high" if signal.confidence_score >= 80 else "medium" if signal.confidence_score >= 70 else "low"
         
         sym_fmt = self.format_iq_symbol(signal.symbol)
-        title = f"🎯 {signal.signal_type} Signal - {sym_fmt}"
+        title = f"🎯 {('BUY' if signal.signal_type=='BUY' else 'SELL')} Signal - {sym_fmt}"
         message = (
             f"Oportunidade {signal.signal_type} detectada! Ativo: {sym_fmt} | "
             f"Score: {signal.confidence_score}% | RR: {signal.risk_reward_ratio}:1 | "
