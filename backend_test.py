@@ -1877,10 +1877,12 @@ def main():
     
     tester = AITradingSystemTester()
     
-    # Run focused tests based on review request
+    # Run focused tests based on review request - Real IQ Option Integration
     tests = [
-        tester.test_quick_order_endpoint,         # Primary focus - Quick Order API testing
-        tester.test_health_endpoint,              # Basic health check
+        tester.test_health_endpoint,                    # Basic health check
+        tester.test_quick_order_real_iq_integration,    # PRIMARY: Real IQ Option integration
+        tester.test_fallback_simulation,                # Test fallback mechanism
+        tester.test_quick_order_endpoint,               # Original quick order tests
     ]
     
     for test in tests:
