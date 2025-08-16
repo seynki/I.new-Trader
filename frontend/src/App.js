@@ -323,7 +323,7 @@ function App() {
         account_type: quickAccountType, // 'demo' | 'real'
         option_type: quickOptionType // 'binary' | 'digital'
       };
-      const res = await axios.post(QUICK_API, payload);
+      const res = await axios.post(QUICK_API, payload, { timeout: 35000 });
       const data = res?.data || {};
 
       // Sucesso real com order_id
