@@ -282,8 +282,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Frontend: Buy/Sell mostra loading, sucesso com order_id/provider e erro real sem simulação"
-    - "Backend: POST /api/trading/quick-order retorna order_id/provider quando sucesso"
+    - "Backend testing completed for current review request"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
