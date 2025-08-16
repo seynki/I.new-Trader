@@ -117,6 +117,8 @@ async def _connect_iq_fallback():
             return _iq_client
         else:
             logger.error(f"iqoptionapi não conectou: {reason}")
+    except asyncio.TimeoutError:
+        logger.error("Timeout ao conectar iqoptionapi (15s)")
     except Exception as e:
         logger.error(f"Falha conectando iqoptionapi: {e}")
     return None
