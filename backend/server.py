@@ -40,6 +40,175 @@ MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
 client = AsyncIOMotorClient(MONGO_URL)
 db = client.typeia_trading
 
+# ====== IQ Option Execução - Config & Helpers (fx-iqoption com fallback iqoptionapi) ======
+IQ_EMAIL = os.getenv("IQ_EMAIL")
+IQ_PASSWORD = os.getenv("IQ_PASSWORD")
+
+# Locks e singletons
+_iq_lock = asyncio.Lock()
+_fx_client = None
+_fx_type = None  # identifica a classe/import utilizada
+_iq_client = None
+
+async def _connect_fx_client():
+    global _fx_client, _fx_type
+    if _fx_client is not None:
+        return _fx_client
+    try:
+        # Tentar múltiplos padrões de import, pois builds variam
+        try:
+            from fx_iqoption import IQ_Option as FXClass  # tipo estilo iqoptionapi
+            _fx_type = "IQ_Option"
+            candidate = FXClass(IQ_EMAIL, IQ_PASSWORD)
+            loop = asyncio.get_event_loop()
+            ok, reason = await loop.run_in_executor(None, candidate.connect)
+            if ok:
+                _fx_client = candidate
+                logger.info("fx-iqoption conectado (IQ_Option)")
+                return _fx_client
+        except Exception as e:
+            logger.warning(f"fx-iqoption (IQ_Option) falhou: {e}")
+        try:
+            from fx_iqoption.client import IQOptionClient as FXClient
+            _fx_type = "IQOptionClient"
+            # libs novas costumam ser async; tentar await connect()
+            candidate = FXClient(email=IQ_EMAIL, password=IQ_PASSWORD)
+            try:
+                ok, reason = await candidate.connect()
+            except TypeError:
+                # algumas versões retornam bool direto
+                ok = await candidate.connect()
+                reason = None
+            if ok:
+                _fx_client = candidate
+                logger.info("fx-iqoption conectado (IQOptionClient)")
+                return _fx_client
+        except Exception as e:
+            logger.warning(f"fx-iqoption (IQOptionClient) falhou: {e}")
+    except ImportError as e:
+        logger.warning(f"fx-iqoption não disponível: {e}")
+    return None
+
+async def _connect_iq_fallback():
+    global _iq_client
+    if _iq_client is not None:
+        return _iq_client
+    try:
+        from iqoptionapi.stable_api import IQ_Option
+        candidate = IQ_Option(IQ_EMAIL, IQ_PASSWORD)
+        # Métodos são síncronos – usar executor
+        loop = asyncio.get_event_loop()
+        ok, reason = await loop.run_in_executor(None, candidate.connect)
+        if ok:
+            _iq_client = candidate
+            logger.info("iqoptionapi conectado (fallback)")
+            return _iq_client
+        else:
+            logger.error(f"iqoptionapi não conectou: {reason}")
+    except Exception as e:
+        logger.error(f"Falha conectando iqoptionapi: {e}")
+    return None
+
+async def _ensure_connected_prefer_fx():
+    async with _iq_lock:
+        c = await _connect_fx_client()
+        if c is not None:
+            return ("fx", c)
+        f = await _connect_iq_fallback()
+        if f is not None:
+            return ("iq", f)
+        raise HTTPException(status_code=500, detail="Não foi possível conectar à IQ Option (fx-iqoption/iqoptionapi)")
+
+async def _switch_balance(client_kind: str, client_obj, mode: str):
+    # mode: 'demo'|'real' -> plataformas usam 'PRACTICE'|'REAL'
+    target = "PRACTICE" if mode == "demo" else "REAL"
+    loop = asyncio.get_event_loop()
+    try:
+        if client_kind == "fx":
+            # Tentar métodos conhecidos
+            # algumas versões: change_balance("PRACTICE"|"REAL")
+            func = getattr(client_obj, "change_balance", None)
+            if asyncio.iscoroutinefunction(func):
+                await func(target)
+            elif callable(func):
+                await loop.run_in_executor(None, func, target)
+            else:
+                # outras versões: set_balance
+                func2 = getattr(client_obj, "set_balance", None)
+                if asyncio.iscoroutinefunction(func2):
+                    await func2(target)
+                elif callable(func2):
+                    await loop.run_in_executor(None, func2, target)
+        else:
+            # iqoptionapi
+            func = getattr(client_obj, "change_balance", None)
+            if callable(func):
+                await loop.run_in_executor(None, func, target)
+    except Exception as e:
+        logger.warning(f"Falha ao trocar conta para {target}: {e}")
+
+async def _place_order(client_kind: str, client_obj, asset: str, direction: str, amount: float, expiration: int, option_type: str):
+    loop = asyncio.get_event_loop()
+    if client_kind == "fx":
+        # Tentar assinaturas conhecidas
+        try:
+            if option_type == "digital":
+                # tentar buy_digital_spot(simbolo, amount, direction, expiration)
+                method = getattr(client_obj, "buy_digital_spot", None)
+                if asyncio.iscoroutinefunction(method):
+                    res = await method(asset, amount, direction, expiration)
+                elif callable(method):
+                    res = await loop.run_in_executor(None, method, asset, amount, direction, expiration)
+                else:
+                    # fallback para buy
+                    method2 = getattr(client_obj, "buy", None)
+                    if asyncio.iscoroutinefunction(method2):
+                        res = await method2(amount, asset, direction, expiration)
+                    else:
+                        res = await loop.run_in_executor(None, method2, amount, asset, direction, expiration)
+            else:
+                method = getattr(client_obj, "buy", None)
+                if asyncio.iscoroutinefunction(method):
+                    res = await method(amount, asset, direction, expiration)
+                else:
+                    res = await loop.run_in_executor(None, method, amount, asset, direction, expiration)
+            # Normalizar retorno
+            order_id = None
+            success = False
+            expiration_ts = None
+            if isinstance(res, tuple):
+                # pode ser (success, order_id, expiration?)
+                if len(res) >= 2:
+                    success = bool(res[0])
+                    order_id = str(res[1])
+                if len(res) >= 3:
+                    expiration_ts = res[2]
+            elif isinstance(res, (str, int)):
+                success = True
+                order_id = str(res)
+            else:
+                success = bool(res)
+                order_id = str(uuid.uuid4()) if success else None
+            return success, order_id, expiration_ts
+        except Exception as e:
+            logger.warning(f"Falha buy via fx-iqoption: {e}")
+            return False, None, None
+    else:
+        # iqoptionapi
+        try:
+            if option_type == "digital":
+                method = getattr(client_obj, "buy_digital_spot", None)
+                if callable(method):
+                    ok, oid = await loop.run_in_executor(None, method, asset, amount, direction, expiration)
+                    return bool(ok), str(oid) if oid is not None else None, None
+            # binary
+            method2 = getattr(client_obj, "buy", None)
+            ok, oid = await loop.run_in_executor(None, method2, amount, asset, direction, expiration)
+            return bool(ok), str(oid) if oid is not None else None, None
+        except Exception as e:
+            logger.error(f"Falha buy via iqoptionapi: {e}")
+            return False, None, None
+
 # Modelos Pydantic
 class MarketData(BaseModel):
     symbol: str
@@ -1242,9 +1411,9 @@ class QuickOrderResponse(BaseModel):
 
 @app.post("/api/trading/quick-order")
 async def quick_order(order: QuickOrderRequest):  # noqa: F811
-    """Fase 1: aceita a ordem e retorna confirmação (sem execução real)."""
+    """Executa ordem real via IQ Option (fx-iqoption com fallback iqoptionapi)."""
     try:
-        # validação simples
+        # validação simples (mantida)
         if order.direction not in ("call", "put"):
             raise HTTPException(status_code=400, detail="direction deve ser 'call' ou 'put'")
         if order.account_type not in ("demo", "real"):
@@ -1256,11 +1425,26 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
         if not (1 <= order.expiration <= 60):
             raise HTTPException(status_code=400, detail="expiration deve estar entre 1 e 60 minutos")
 
-        oid = str(uuid4())
+        if not IQ_EMAIL or not IQ_PASSWORD:
+            raise HTTPException(status_code=500, detail="Credenciais IQ_EMAIL/IQ_PASSWORD ausentes no backend")
+
+        # Garantir conexão (prefere fx)
+        kind, client_obj = await _ensure_connected_prefer_fx()
+        # Trocar conta conforme seleção
+        await _switch_balance(kind, client_obj, order.account_type)
+        
+        # Executar ordem
+        success, oid, exp_ts = await _place_order(
+            kind, client_obj, order.asset, order.direction, float(order.amount), int(order.expiration), order.option_type
+        )
+
+        if not success or not oid:
+            raise HTTPException(status_code=502, detail="Falha ao enviar ordem à corretora")
+
         return QuickOrderResponse(
             success=True,
-            message="Ordem recebida (fase 1 - simulação)",
-            order_id=oid,
+            message="Ordem enviada com sucesso",
+            order_id=str(oid),
             echo={
                 "asset": order.asset,
                 "direction": order.direction,
@@ -1268,13 +1452,15 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
                 "expiration": order.expiration,
                 "account_type": order.account_type,
                 "option_type": order.option_type,
+                "provider": "fx-iqoption" if kind == "fx" else "iqoptionapi",
+                "expiration_ts": exp_ts
             }
         )
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Erro ao aceitar quick-order: {e}")
-        raise HTTPException(status_code=500, detail="Erro interno ao aceitar ordem")
+        logger.error(f"Erro ao executar quick-order: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao executar ordem")
 
 @app.get("/api/stats")
 async def get_system_stats():
