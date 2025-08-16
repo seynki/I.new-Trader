@@ -1018,6 +1018,68 @@ async def get_signals(
 
     return {"signals": docs}
 
+@app.get("/api/signals/export")
+async def export_signals_csv(
+    symbol: Optional[str] = None,
+    symbols: Optional[str] = None,
+    timeframes: Optional[str] = None,
+    regimes: Optional[str] = None,
+    since_minutes: int = 0,
+    max_per_symbol: int = 0,
+    limit: int = 100,
+):
+    """Exporta sinais em CSV respeitando os mesmos filtros de /api/signals."""
+    query: Dict[str, Any] = {}
+    if symbol:
+        query["symbol"] = symbol
+    elif symbols:
+        symbol_list = [s.strip() for s in symbols.split(",") if s.strip()]
+        if symbol_list:
+            query["symbol"] = {"$in": symbol_list}
+    if timeframes:
+        tf_list = [t.strip() for t in timeframes.split(",") if t.strip()]
+        if tf_list:
+            query["timeframe"] = {"$in": tf_list}
+    if regimes:
+        r_list = [r.strip() for r in regimes.split(",") if r.strip()]
+        if r_list:
+            query["regime"] = {"$in": r_list}
+    if since_minutes and since_minutes > 0:
+        cutoff = datetime.now() - timedelta(minutes=since_minutes)
+        query["timestamp"] = {"$gte": cutoff}
+
+    cursor = db.signals.find(query).sort("timestamp", -1).limit(limit)
+    docs = await cursor.to_list(length=limit)
+
+    if max_per_symbol and max_per_symbol > 0:
+        grouped: Dict[str, List[Dict]] = {}
+        for d in docs:
+            grouped.setdefault(d.get("symbol", ""), []).append(d)
+        trimmed: List[Dict] = []
+        for sym, arr in grouped.items():
+            trimmed.extend(arr[:max_per_symbol])
+        docs = sorted(trimmed, key=lambda x: x.get("timestamp", datetime.min), reverse=True)[:limit]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "id","symbol","timeframe","signal_type","confidence_score","risk_reward_ratio",
+        "entry_price","stop_loss","take_profit","regime","quality","justification","timestamp"
+    ])
+    for s in docs:
+        writer.writerow([
+            s.get("id",""), s.get("symbol",""), s.get("timeframe",""), s.get("signal_type",""),
+            s.get("confidence_score",""), s.get("risk_reward_ratio",""), s.get("entry_price",""),
+            s.get("stop_loss",""), s.get("take_profit",""), s.get("regime",""), s.get("quality",""),
+            s.get("justification",""), s.get("timestamp","")
+        ])
+
+    output.seek(0)
+    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={
+        "Content-Disposition": "attachment; filename=signals_export.csv"
+    })
+
+
 @app.get("/api/indicators/{symbol}")
 async def get_indicators(symbol: str):
     """Retorna indicadores técnicos para um símbolo"""
