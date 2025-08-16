@@ -1241,7 +1241,7 @@ class QuickOrderResponse(BaseModel):
     echo: Dict[str, Any] | None = None
 
 @app.post("/api/trading/quick-order")
-async def quick_order(order: QuickOrderRequest):
+async def quick_order(order: QuickOrderRequest):  # noqa: F811
     """Fase 1: aceita a ordem e retorna confirmação (sem execução real)."""
     try:
         # validação simples
