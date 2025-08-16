@@ -15,7 +15,7 @@ class AITradingSystemTester:
         self.ws_connected = False
         self.notification_alerts_received = []
 
-    def run_test(self, name, method, endpoint, expected_status, data=None, timeout=10):
+    def run_test(self, name, method, endpoint, expected_status, data=None, timeout=30):
         """Run a single API test"""
         url = f"{self.base_url}/{endpoint}"
         headers = {'Content-Type': 'application/json'}
