@@ -1224,6 +1224,58 @@ async def format_signal_for_iq_option(signal_id: str):
         logger.error(f"Error formatting signal for IQ Option: {e}")
         raise HTTPException(status_code=500, detail="Error formatting signal")
 
+from uuid import uuid4
+
+class QuickOrderRequest(BaseModel):
+    asset: str
+    direction: str  # 'call' or 'put'
+    amount: float
+    expiration: int  # minutes
+    account_type: str = "demo"  # 'demo' or 'real'
+    option_type: str = "binary"  # 'binary' or 'digital'
+
+class QuickOrderResponse(BaseModel):
+    success: bool
+    message: str
+    order_id: str | None = None
+    echo: Dict[str, Any] | None = None
+
+@app.post("/api/trading/quick-order")
+async def quick_order(order: QuickOrderRequest):
+    """Fase 1: aceita a ordem e retorna confirmação (sem execução real)."""
+    try:
+        # validação simples
+        if order.direction not in ("call", "put"):
+            raise HTTPException(status_code=400, detail="direction deve ser 'call' ou 'put'")
+        if order.account_type not in ("demo", "real"):
+            raise HTTPException(status_code=400, detail="account_type deve ser 'demo' ou 'real'")
+        if order.option_type not in ("binary", "digital"):
+            raise HTTPException(status_code=400, detail="option_type deve ser 'binary' ou 'digital'")
+        if order.amount <= 0:
+            raise HTTPException(status_code=400, detail="amount deve ser > 0")
+        if not (1 <= order.expiration <= 60):
+            raise HTTPException(status_code=400, detail="expiration deve estar entre 1 e 60 minutos")
+
+        oid = str(uuid4())
+        return QuickOrderResponse(
+            success=True,
+            message="Ordem recebida (fase 1 - simulação)",
+            order_id=oid,
+            echo={
+                "asset": order.asset,
+                "direction": order.direction,
+                "amount": order.amount,
+                "expiration": order.expiration,
+                "account_type": order.account_type,
+                "option_type": order.option_type,
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao aceitar quick-order: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao aceitar ordem")
+
 @app.get("/api/stats")
 async def get_system_stats():
     """Retorna estatísticas do sistema"""
