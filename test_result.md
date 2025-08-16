@@ -303,7 +303,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Backend testing completed for current review request"
+    - "IQ Option Diagnostics Endpoint"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
