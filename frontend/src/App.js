@@ -673,9 +673,46 @@ function App() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg text-green-400">Oportunidades ao vivo</CardTitle>
-                  <Badge variant="outline" className="text-green-400 border-green-400/50">
-                    Score ≥ {notificationSettings.min_score_threshold}% , RR ≥ {notificationSettings.min_rr_threshold} risco ≤ 1%
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={quickAccountType}
+                      onChange={(e)=>setQuickAccountType(e.target.value)}
+                      className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-blue-400"
+                    >
+                      <option value="demo">Demo</option>
+                      <option value="real">Real</option>
+                    </select>
+                    <select
+                      value={quickOptionType}
+                      onChange={(e)=>setQuickOptionType(e.target.value)}
+                      className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-blue-400"
+                    >
+                      <option value="binary">Binary</option>
+                      <option value="digital">Digital</option>
+                    </select>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={quickAmount}
+                      onChange={(e)=>setQuickAmount(parseFloat(e.target.value||'1'))}
+                      placeholder="Valor"
+                      className="w-20 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-green-400"
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      max="60"
+                      step="1"
+                      value={quickExpiration}
+                      onChange={(e)=>setQuickExpiration(parseInt(e.target.value||'1',10))}
+                      placeholder="Exp (min)"
+                      className="w-20 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-green-400"
+                    />
+                    <Badge variant="outline" className="text-green-400 border-green-400/50">
+                      Score ≥ {notificationSettings.min_score_threshold}% , RR ≥ {notificationSettings.min_rr_threshold} risco ≤ 1%
+                    </Badge>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
