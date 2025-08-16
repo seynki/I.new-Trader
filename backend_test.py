@@ -1886,17 +1886,14 @@ class AITradingSystemTester:
         return all_passed
 
 def main():
-    print("🚀 Starting AI Trading System Backend Tests - Quick Order API Review Request")
+    print("🚀 Starting AI Trading System Backend Tests - Current Review Request")
     print("=" * 80)
     
     tester = AITradingSystemTester()
     
-    # Run focused tests based on review request - Real IQ Option Integration
+    # Run focused tests based on current review request
     tests = [
-        tester.test_health_endpoint,                    # Basic health check
-        tester.test_quick_order_real_iq_integration,    # PRIMARY: Real IQ Option integration
-        tester.test_fallback_simulation,                # Test fallback mechanism
-        tester.test_quick_order_endpoint,               # Original quick order tests
+        tester.test_review_request_focused,  # PRIMARY: Current review request tests
     ]
     
     for test in tests:
@@ -1912,11 +1909,6 @@ def main():
     print(f"Tests Run: {tester.tests_run}")
     print(f"Tests Passed: {tester.tests_passed}")
     print(f"Success Rate: {(tester.tests_passed/tester.tests_run*100):.1f}%" if tester.tests_run > 0 else "0%")
-    
-    # Detailed notification system results
-    print(f"\n🔔 NOTIFICATION SYSTEM RESULTS:")
-    print(f"WebSocket Messages Received: {len(tester.ws_messages)}")
-    print(f"Trading Alerts Received: {len(tester.notification_alerts_received)}")
     
     if tester.tests_passed == tester.tests_run:
         print("🎉 All backend tests passed!")
