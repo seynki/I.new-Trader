@@ -208,10 +208,18 @@ function App() {
 
   const fetchInitialData = async () => {
     try {
-      const [marketResponse, signalsResponse, alertsResponse] = await Promise.all([
+      const params = new URLSearchParams();
+      // apply filters
+      if (selectedSymbols.length > 0) params.set('symbols', selectedSymbols.join(','));
+      if (selectedRegime !== 'All') params.set('regimes', selectedRegime);
+      if (sinceMinutes) params.set('since_minutes', String(sinceMinutes));
+      if (notificationSettings.max_per_symbol) params.set('max_per_symbol', String(notificationSettings.max_per_symbol));
+
+      const [marketResponse, signalsResponse, alertsResponse, symbolsResponse] = await Promise.all([
         axios.get(`${BACKEND_URL}/api/market-data`),
-        axios.get(`${BACKEND_URL}/api/signals?limit=20`),
-        axios.get(`${BACKEND_URL}/api/alerts?limit=10`)
+        axios.get(`${BACKEND_URL}/api/signals?${params.toString()}&limit=20`),
+        axios.get(`${BACKEND_URL}/api/alerts?limit=10`),
+        axios.get(`${BACKEND_URL}/api/symbols`)
       ]);
       
       // Filter out removed indices just in case
@@ -221,6 +229,11 @@ function App() {
       setMarketData(md);
       setSignals(sigs);
       setAlerts(alertsResponse.data.alerts || []);
+      const syms = (symbolsResponse.data.symbols || []);
+      setAllSymbols(syms);
+      const map = {};
+      syms.forEach(s => { map[s.symbol] = s; });
+      setSymbolInfoMap(map);
     } catch (error) {
       console.error('Erro ao buscar dados iniciais:', error);
     }
