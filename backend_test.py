@@ -2368,6 +2368,135 @@ class AITradingSystemTester:
         self.tests_run += 1
         return all_passed
 
+    def test_iq_option_diagnostics_endpoint(self):
+        """Test IQ Option Diagnostics Endpoint as per review request"""
+        print(f"\n🎯 Testing IQ Option Diagnostics Endpoint...")
+        
+        start_time = time.time()
+        
+        success, response = self.run_test(
+            "IQ Option Diagnostics",
+            "GET",
+            "api/iq-option/diagnostics",
+            200,
+            timeout=10
+        )
+        
+        end_time = time.time()
+        request_time = round((end_time - start_time) * 1000, 2)  # Convert to milliseconds
+        
+        print(f"   ⏱️ Request completed in {request_time}ms")
+        
+        if success and isinstance(response, dict):
+            # Validate required top-level fields
+            required_fields = ['status', 'summary', 'env', 'network']
+            missing_fields = []
+            
+            for field in required_fields:
+                if field in response:
+                    print(f"   ✅ Field '{field}' present")
+                else:
+                    print(f"   ❌ Field '{field}' missing")
+                    missing_fields.append(field)
+            
+            if missing_fields:
+                print(f"   ❌ Missing required fields: {missing_fields}")
+                return False
+            
+            # Validate status field
+            status = response.get('status')
+            if status == 'success':
+                print(f"   ✅ Status is 'success': {status}")
+            else:
+                print(f"   ❌ Status is not 'success': {status}")
+                return False
+            
+            # Validate summary field
+            summary = response.get('summary', '')
+            if summary and isinstance(summary, str):
+                print(f"   ✅ Summary is coherent: '{summary}'")
+                
+                # Infer probable cause of "Serviço IQ Option temporariamente indisponível" error
+                if "Credenciais ausentes" in summary:
+                    print(f"   🔍 PROBABLE CAUSE: Missing credentials (IQ_EMAIL/IQ_PASSWORD in backend .env)")
+                elif "Falha de DNS" in summary:
+                    print(f"   🔍 PROBABLE CAUSE: DNS resolution failure - environment cannot resolve iqoption.com")
+                elif "Porta 443 bloqueada" in summary:
+                    print(f"   🔍 PROBABLE CAUSE: Outbound port 443 blocked in environment")
+                elif "Saída HTTP/HTTPS bloqueada" in summary:
+                    print(f"   🔍 PROBABLE CAUSE: HTTP/HTTPS outbound connections blocked in environment")
+                elif summary == "OK":
+                    print(f"   🔍 PROBABLE CAUSE: All diagnostics passed - issue may be temporary or authentication-related")
+                else:
+                    print(f"   🔍 PROBABLE CAUSE: Unknown - check summary for details")
+            else:
+                print(f"   ❌ Summary is not a valid string: {summary}")
+                return False
+            
+            # Validate env field
+            env = response.get('env', {})
+            if isinstance(env, dict):
+                print(f"   ✅ Env field is dict")
+                
+                # Check required env subfields
+                env_fields = ['IQ_EMAIL_present', 'IQ_PASSWORD_present']
+                for field in env_fields:
+                    if field in env:
+                        value = env[field]
+                        print(f"   ✅ Env.{field}: {value}")
+                    else:
+                        print(f"   ❌ Env.{field} missing")
+                        return False
+            else:
+                print(f"   ❌ Env field is not dict: {env}")
+                return False
+            
+            # Validate network field
+            network = response.get('network', {})
+            if isinstance(network, dict):
+                print(f"   ✅ Network field is dict")
+                
+                # Check required network subfields
+                network_fields = ['dns_resolved', 'dns_ip', 'tcp_443_ok', 'https_get_ok', 'errors']
+                for field in network_fields:
+                    if field in network:
+                        value = network[field]
+                        print(f"   ✅ Network.{field}: {value}")
+                    else:
+                        print(f"   ❌ Network.{field} missing")
+                        return False
+                
+                # Validate errors is a list
+                errors = network.get('errors', [])
+                if isinstance(errors, list):
+                    print(f"   ✅ Network.errors is list with {len(errors)} items")
+                    if errors:
+                        print(f"   📋 Network errors:")
+                        for i, error in enumerate(errors, 1):
+                            print(f"      {i}. {error}")
+                else:
+                    print(f"   ❌ Network.errors is not list: {errors}")
+                    return False
+            else:
+                print(f"   ❌ Network field is not dict: {network}")
+                return False
+            
+            # Print diagnostic summary
+            print(f"\n   📊 DIAGNOSTIC SUMMARY:")
+            print(f"      Status: {response.get('status')}")
+            print(f"      Summary: {response.get('summary')}")
+            print(f"      Credentials Present: IQ_EMAIL={env.get('IQ_EMAIL_present')}, IQ_PASSWORD={env.get('IQ_PASSWORD_present')}")
+            print(f"      Network: DNS={network.get('dns_resolved')}, TCP443={network.get('tcp_443_ok')}, HTTPS={network.get('https_get_ok')}")
+            print(f"      DNS IP: {network.get('dns_ip')}")
+            print(f"      Request Time: {request_time}ms")
+            
+            self.tests_passed += 1
+            print(f"   ✅ IQ Option Diagnostics Endpoint test PASSED")
+            return True
+        else:
+            print(f"   ❌ IQ Option Diagnostics Endpoint test FAILED")
+            return False
+
 def main():
     print("🚀 Starting AI Trading System Backend Tests - Timeout Resolution Focus")
     print("=" * 80)
