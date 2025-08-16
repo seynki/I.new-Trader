@@ -35,6 +35,10 @@ import './App.css';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 function App() {
+  const [quickAmount, setQuickAmount] = useState(10);
+  const [quickExpiration, setQuickExpiration] = useState(1);
+  const [quickAccountType, setQuickAccountType] = useState('demo');
+  const [quickOptionType, setQuickOptionType] = useState('binary');
   const [marketData, setMarketData] = useState([]);
   const [signals, setSignals] = useState([]);
   const [alerts, setAlerts] = useState([]);
