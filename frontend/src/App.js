@@ -488,6 +488,7 @@ function App() {
               {/* Notifications */}
               <div className="relative">
                 <Button
+                  data-testid="notif-bell"
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowNotifications(!showNotifications)}
