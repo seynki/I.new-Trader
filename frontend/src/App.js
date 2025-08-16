@@ -767,8 +767,20 @@ function App() {
                       </div>
                       <div className="text-xs text-green-400 font-mono text-center">{signal.risk_reward_ratio ?? '-'}</div>
                       <div className="text-xs text-blue-400 font-mono text-center">0.69</div>
-                      <div className={`text-xs font-semibold ${signal.signal_type === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
-                        {signal.signal_type === 'BUY' ? 'BUY' : 'SELL'}
+                      <div className="flex items-center justify-center gap-2">
+                        <span className={`text-xs font-semibold ${signal.signal_type === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
+                          {signal.signal_type === 'BUY' ? 'BUY' : 'SELL'}
+                        </span>
+                        <button
+                          onClick={()=> quickOrder(signal.symbol, 'call')}
+                          className="text-[10px] px-2 py-1 rounded bg-green-700 hover:bg-green-600 text-white"
+                          title="Buy (call)"
+                        >Buy</button>
+                        <button
+                          onClick={()=> quickOrder(signal.symbol, 'put')}
+                          className="text-[10px] px-2 py-1 rounded bg-red-700 hover:bg-red-600 text-white"
+                          title="Sell (put)"
+                        >Sell</button>
                       </div>
                       <div className="col-span-1 text-xs text-gray-300 font-mono text-right">{formatPrice(signal.entry_price, signal.symbol)}</div>
                       <div className="col-span-1 text-xs text-red-400 font-mono text-right">{formatPrice(signal.stop_loss, signal.symbol)}</div>
