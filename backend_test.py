@@ -1454,15 +1454,15 @@ class AITradingSystemTester:
         return all_passed
 
 def main():
-    print("🚀 Starting AI Trading System Backend Tests - Minimum Score Threshold Validation")
+    print("🚀 Starting AI Trading System Backend Tests - SELL Signals Review Request")
     print("=" * 80)
     
     tester = AITradingSystemTester()
     
     # Run focused tests based on review request
     tests = [
-        tester.test_minimum_score_threshold_validation,  # Primary focus - 70% threshold validation
-        tester.test_health_endpoint,                     # Basic health check
+        tester.test_sell_signals_review_request,  # Primary focus - SELL signals testing
+        tester.test_health_endpoint,              # Basic health check
     ]
     
     for test in tests:
