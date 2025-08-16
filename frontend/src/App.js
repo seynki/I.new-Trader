@@ -307,6 +307,33 @@ function App() {
     }
   }, []);
 
+  const QUICK_API = `${BACKEND_URL}/api/trading/quick-order`;
+
+  const quickOrder = async (asset, direction) => {
+    try {
+      const payload = {
+        asset,
+        direction, // 'call' or 'put'
+        amount: Number.isFinite(quickAmount) ? quickAmount : 10,
+        expiration: Number.isFinite(quickExpiration) ? quickExpiration : 1,
+        account_type: quickAccountType, // 'demo' | 'real'
+        option_type: quickOptionType // 'binary' | 'digital'
+      };
+      await axios.post(QUICK_API, payload);
+      // feedback básico (fase 1)
+      setAlerts(prev => [{
+        id: `qo-${Date.now()}`,
+        title: `${direction === 'call' ? 'BUY' : 'SELL'} • ${formatIQOptionSymbol(asset)}`,
+        message: `Ordem rápida enviada • ${payload.amount} • exp ${payload.expiration}m • ${payload.account_type.toUpperCase()} • ${payload.option_type}`,
+        priority: 'medium',
+        timestamp: new Date().toISOString(),
+        signal_type: direction === 'call' ? 'buy' : 'sell'
+      }, ...prev].slice(0, 10));
+    } catch (e) {
+      console.error('Quick order error', e);
+    }
+  };
+
   const formatPrice = (price, symbol) => {
     if (!price && price !== 0) return '0.00';
     if (price >= 10000) {
