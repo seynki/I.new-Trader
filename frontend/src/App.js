@@ -164,7 +164,7 @@ function App() {
           const exists = prev.find(a => a.id === newAlert.id);
           if (!exists) {
             showTradingAlertNotification(newAlert);
-            playAlertBeep();
+            if (notificationSettings.alert_sound_enabled !== false) { playAlertBeep(); }
             return [newAlert, ...prev.slice(0, 9)];
           }
           return prev;
