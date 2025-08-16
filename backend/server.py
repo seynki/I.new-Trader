@@ -539,9 +539,9 @@ class AdvancedSignalGenerator:
         confidence = max(0, min(100, int(total_score)))
         
         # Determinar sinal final
-        if trend_score + momentum_score + vol_score > 15:
+        if trend_score + momentum_score + vol_score > 10:
             signal_type = "BUY"
-        elif trend_score + momentum_score + vol_score < -15:
+        elif trend_score + momentum_score + vol_score < -8:
             signal_type = "SELL"
         else:
             return None  # Sinal não confiável
