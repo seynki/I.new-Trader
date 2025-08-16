@@ -43,6 +43,7 @@ db = client.typeia_trading
 # ====== IQ Option Execução - Config & Helpers (fx-iqoption com fallback iqoptionapi) ======
 IQ_EMAIL = os.getenv("IQ_EMAIL")
 IQ_PASSWORD = os.getenv("IQ_PASSWORD")
+IQ_USE_FX = os.getenv("IQ_USE_FX", "1")  # "1" para usar fx-iqoption se disponível
 
 # Locks e singletons
 _iq_lock = asyncio.Lock()
@@ -51,19 +52,99 @@ _fx_type = None  # identifica a classe/import utilizada
 _iq_client = None
 
 async def _connect_fx_client():
-    global _fx_client
+    """Tenta conectar via biblioteca fx-iqoption com timeout e múltiplos candidatos.
+    Só será tentado se IQ_USE_FX != "0".
+    """
+    global _fx_client, _fx_type
+    if IQ_USE_FX == "0":
+        logger.info("IQ_USE_FX=0, pulando fx-iqoption")
+        return None
     if _fx_client is not None:
         return _fx_client
-    try:
-        # Desabilitado temporariamente devido a erros de WebSocket
-        logger.info("fx-iqoption desabilitado temporariamente")
-        return None
-    except ImportError:
-        logger.warning("fx-iqoption não instalado")
-    except asyncio.TimeoutError:
-        logger.error("Timeout ao conectar fx-iqoption (15s)")
-    except Exception as e:
-        logger.error(f"Falha conectando fx-iqoption: {e}")
+
+    import importlib
+    loop = asyncio.get_event_loop()
+
+    candidates = [
+        # (module, attr list que podem representar a classe/creator)
+        ("fxiqoption", ["Client", "IQOption", "Api", "API", "create_client"]),
+        ("fx_iqoption", ["Client", "IQOption", "Api", "API", "create_client"]),
+        ("fxiqoption.api", ["Client", "IQOption", "Api", "API", "create_client"]),
+        ("fx_iqoption.api", ["Client", "IQOption", "Api", "API", "create_client"]),
+    ]
+
+    last_error = None
+    for mod_name, attrs in candidates:
+        try:
+            mod = importlib.import_module(mod_name)
+            target = None
+            for attr in attrs:
+                if hasattr(mod, attr):
+                    target = getattr(mod, attr)
+                    break
+            if target is None:
+                # tentar subatributos comuns (ex: mod.core.Client)
+                for sub in ("core", "client", "api"):
+                    try:
+                        submod = getattr(mod, sub)
+                        for attr in attrs:
+                            if hasattr(submod, attr):
+                                target = getattr(submod, attr)
+                                break
+                        if target:
+                            break
+                    except Exception:
+                        pass
+            if target is None:
+                logger.debug(f"Módulo {mod_name} importado, mas classe/factory não encontrada")
+                continue
+
+            async def _connect_callable():
+                obj = None
+                try:
+                    # Possíveis formas de inicialização
+                    if callable(target):
+                        try:
+                            obj = target(IQ_EMAIL, IQ_PASSWORD)
+                        except TypeError:
+                            obj = target()
+                    else:
+                        obj = target
+
+                    # Possíveis métodos de login/conexão
+                    for meth in ("connect", "login", "authenticate", "auth"):
+                        fn = getattr(obj, meth, None)
+                        if fn:
+                            if asyncio.iscoroutinefunction(fn):
+                                ok = await fn()
+                                if ok is False:
+                                    raise RuntimeError(f"{meth} retornou False")
+                            else:
+                                await loop.run_in_executor(None, lambda: fn() if fn.__code__.co_argcount == 1 else fn(IQ_EMAIL, IQ_PASSWORD))
+                            break
+                    return obj
+                except Exception as e:
+                    raise e
+
+            # timeout total 15s para cada candidato
+            client_obj = await asyncio.wait_for(_connect_callable(), timeout=15.0)
+            _fx_client = client_obj
+            _fx_type = mod_name
+            logger.info(f"fx-iqoption conectado via módulo: {mod_name}")
+            return _fx_client
+        except ImportError:
+            continue
+        except asyncio.TimeoutError:
+            last_error = "timeout"
+            logger.warning(f"Timeout conectando via {mod_name}")
+        except Exception as e:
+            last_error = str(e)
+            logger.warning(f"Falha conectando via {mod_name}: {e}")
+
+    if last_error:
+        logger.error(f"fx-iqoption indisponível: {last_error}")
+    else:
+        logger.warning("fx-iqoption não encontrado em nenhum módulo candidato")
     return None
 
 async def _connect_iq_fallback():
