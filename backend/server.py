@@ -722,6 +722,7 @@ class NotificationManager:
             message=message,
             priority=priority,
             timestamp=datetime.now(),
+            signal_type=signal.signal_type.lower(),
             iq_option_ready=True
         )
         
