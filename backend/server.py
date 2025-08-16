@@ -125,13 +125,30 @@ async def _connect_iq_fallback():
 
 async def _ensure_connected_prefer_fx():
     async with _iq_lock:
-        c = await _connect_fx_client()
-        if c is not None:
-            return ("fx", c)
-        f = await _connect_iq_fallback()
-        if f is not None:
-            return ("iq", f)
-        raise HTTPException(status_code=500, detail="Não foi possível conectar à IQ Option (fx-iqoption/iqoptionapi)")
+        try:
+            # Primeiro tentar fx-iqoption com timeout
+            c = await asyncio.wait_for(_connect_fx_client(), timeout=30.0)
+            if c is not None:
+                return ("fx", c)
+        except asyncio.TimeoutError:
+            logger.warning("Timeout na conexão fx-iqoption (30s), tentando fallback")
+        except Exception as e:
+            logger.warning(f"Erro na conexão fx-iqoption: {e}, tentando fallback")
+        
+        try:
+            # Fallback para iqoptionapi com timeout
+            f = await asyncio.wait_for(_connect_iq_fallback(), timeout=30.0)
+            if f is not None:
+                return ("iq", f)
+        except asyncio.TimeoutError:
+            logger.error("Timeout na conexão iqoptionapi (30s)")
+        except Exception as e:
+            logger.error(f"Erro na conexão iqoptionapi: {e}")
+        
+        raise HTTPException(
+            status_code=503, 
+            detail="Serviço IQ Option temporariamente indisponível. Verifique sua conexão e credenciais."
+        )
 
 async def _switch_balance(client_kind: str, client_obj, mode: str):
     # mode: 'demo'|'real' -> plataformas usam 'PRACTICE'|'REAL'
