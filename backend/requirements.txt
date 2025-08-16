@@ -32,6 +32,7 @@ asyncio>=3.4.3
 apscheduler>=3.10.4
 
 # IQ Option integrations
+fxiqoption>=1.0.0
 fx-iqoption>=1.0.0
 websocket-client==0.56.0
 
