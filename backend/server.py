@@ -1499,39 +1499,74 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
         if not IQ_EMAIL or not IQ_PASSWORD:
             raise HTTPException(status_code=500, detail="Credenciais IQ_EMAIL/IQ_PASSWORD ausentes no backend")
 
-        # Garantir conexão (prefere fx)
-        kind, client_obj = await _ensure_connected_prefer_fx()
+        logger.info(f"Iniciando ordem: {order.asset} {order.direction} ${order.amount}")
+        
+        # Garantir conexão (prefere fx) com timeout total
+        try:
+            kind, client_obj = await asyncio.wait_for(
+                _ensure_connected_prefer_fx(), 
+                timeout=45.0
+            )
+            logger.info(f"Conectado via {kind}")
+        except asyncio.TimeoutError:
+            raise HTTPException(
+                status_code=504, 
+                detail="Timeout na conexão com IQ Option. Tente novamente em alguns instantes."
+            )
+        
         # Trocar conta conforme seleção
         await _switch_balance(kind, client_obj, order.account_type)
         
-        # Executar ordem
-        success, oid, exp_ts = await _place_order(
-            kind, client_obj, order.asset, order.direction, float(order.amount), int(order.expiration), order.option_type
-        )
+        # Executar ordem com retry
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            try:
+                success, oid, exp_ts = await _place_order(
+                    kind, client_obj, order.asset, order.direction, 
+                    float(order.amount), int(order.expiration), order.option_type
+                )
+                
+                if success and oid:
+                    logger.info(f"Ordem executada com sucesso: {oid}")
+                    return QuickOrderResponse(
+                        success=True,
+                        message="Ordem enviada com sucesso",
+                        order_id=str(oid),
+                        echo={
+                            "asset": order.asset,
+                            "direction": order.direction,
+                            "amount": order.amount,
+                            "expiration": order.expiration,
+                            "account_type": order.account_type,
+                            "option_type": order.option_type,
+                            "provider": "fx-iqoption" if kind == "fx" else "iqoptionapi",
+                            "expiration_ts": exp_ts,
+                            "attempt": attempt + 1
+                        }
+                    )
+                elif attempt < max_retries:
+                    logger.warning(f"Tentativa {attempt + 1} falhou, tentando novamente...")
+                    await asyncio.sleep(2)  # Aguardar antes do retry
+                    continue
+                else:
+                    raise HTTPException(status_code=502, detail="Falha ao enviar ordem à corretora após múltiplas tentativas")
+                    
+            except asyncio.TimeoutError:
+                if attempt < max_retries:
+                    logger.warning(f"Timeout na tentativa {attempt + 1}, tentando novamente...")
+                    await asyncio.sleep(2)
+                    continue
+                else:
+                    raise HTTPException(
+                        status_code=504, 
+                        detail="Timeout ao executar ordem. A corretora pode estar sobrecarregada."
+                    )
 
-        if not success or not oid:
-            raise HTTPException(status_code=502, detail="Falha ao enviar ordem à corretora")
-
-        return QuickOrderResponse(
-            success=True,
-            message="Ordem enviada com sucesso",
-            order_id=str(oid),
-            echo={
-                "asset": order.asset,
-                "direction": order.direction,
-                "amount": order.amount,
-                "expiration": order.expiration,
-                "account_type": order.account_type,
-                "option_type": order.option_type,
-                "provider": "fx-iqoption" if kind == "fx" else "iqoptionapi",
-                "expiration_ts": exp_ts
-            }
-        )
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Erro ao executar quick-order: {e}")
-        raise HTTPException(status_code=500, detail="Erro interno ao executar ordem")
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
 
 @app.get("/api/stats")
 async def get_system_stats():
