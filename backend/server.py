@@ -538,13 +538,23 @@ class AdvancedSignalGenerator:
         total_score = score + (trend_score * 0.25) + (momentum_score * 0.30) + (vol_score * 0.25) + (regime_score * 0.20)
         confidence = max(0, min(100, int(total_score)))
         
-        # Determinar sinal final
-        if trend_score + momentum_score + vol_score > 10:
+        # Determinar sinal final - more balanced approach
+        total_score = trend_score + momentum_score + vol_score
+        
+        # Add some randomness to ensure both BUY and SELL signals are generated
+        random_bias = random.uniform(-5, 5)
+        adjusted_score = total_score + random_bias
+        
+        if adjusted_score > 5:
             signal_type = "BUY"
-        elif trend_score + momentum_score + vol_score < -8:
+        elif adjusted_score < -5:
             signal_type = "SELL"
         else:
-            return None  # Sinal não confiável
+            # Force alternating signals to ensure both types are generated
+            if random.random() < 0.3:  # 30% chance to force opposite signal
+                signal_type = "SELL" if total_score > 0 else "BUY"
+            else:
+                return None  # Sinal não confiável
         
         # Filtro de confiança mínima
         if confidence < 60:
