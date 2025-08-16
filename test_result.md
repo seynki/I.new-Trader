@@ -270,7 +270,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "All frontend tasks completed and tested successfully"
+    - "Verify SELL label appears in Opportunities table"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
