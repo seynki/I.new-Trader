@@ -948,21 +948,71 @@ async def get_market_data():
     return {"data": data, "volatility_regime": market_simulator.volatility_regime}
 
 @app.get("/api/signals")
-async def get_signals(symbol: Optional[str] = None, limit: int = 20):
-    """Retorna sinais recentes"""
-    query = {}
+async def get_signals(
+    symbol: Optional[str] = None,
+    symbols: Optional[str] = None,
+    timeframes: Optional[str] = None,
+    regimes: Optional[str] = None,
+    since_minutes: int = 0,
+    max_per_symbol: int = 0,
+    limit: int = 20,
+):
+    """Retorna sinais recentes com filtros opcionais.
+    - symbol: um único símbolo
+    - symbols: lista separada por vírgula (ex: BTCUSDT,EURUSD)
+    - timeframes: lista separada por vírgula (ex: 1m,5m,15m)
+    - regimes: lista separada por vírgula (ex: trending,sideways,high_vol,low_vol)
+    - since_minutes: janela de tempo (>=0) a partir de agora
+    - max_per_symbol: limita quantidade por símbolo após a consulta
+    - limit: limite total
+    """
+    query: Dict[str, Any] = {}
+
+    # Símbolos
     if symbol:
         query["symbol"] = symbol
-        
+    elif symbols:
+        symbol_list = [s.strip() for s in symbols.split(",") if s.strip()]
+        if symbol_list:
+            query["symbol"] = {"$in": symbol_list}
+
+    # Timeframes
+    if timeframes:
+        tf_list = [t.strip() for t in timeframes.split(",") if t.strip()]
+        if tf_list:
+            query["timeframe"] = {"$in": tf_list}
+
+    # Regimes
+    if regimes:
+        r_list = [r.strip() for r in regimes.split(",") if r.strip()]
+        if r_list:
+            query["regime"] = {"$in": r_list}
+
+    # Janela temporal
+    if since_minutes and since_minutes > 0:
+        cutoff = datetime.now() - timedelta(minutes=since_minutes)
+        query["timestamp"] = {"$gte": cutoff}
+
     cursor = db.signals.find(query).sort("timestamp", -1).limit(limit)
-    signals = await cursor.to_list(length=limit)
-    
-    # Convert ObjectId to string for JSON serialization
-    for signal in signals:
-        if "_id" in signal:
-            signal["_id"] = str(signal["_id"])
-    
-    return {"signals": signals}
+    docs = await cursor.to_list(length=limit)
+
+    # Enforce max_per_symbol se solicitado
+    if max_per_symbol and max_per_symbol > 0:
+        grouped: Dict[str, List[Dict]] = {}
+        for d in docs:
+            grouped.setdefault(d.get("symbol", ""), []).append(d)
+        trimmed: List[Dict] = []
+        for sym, arr in grouped.items():
+            trimmed.extend(arr[:max_per_symbol])
+        # Re-ordenar por timestamp desc
+        docs = sorted(trimmed, key=lambda x: x.get("timestamp", datetime.min), reverse=True)[:limit]
+
+    # Convert ObjectId para string
+    for d in docs:
+        if "_id" in d:
+            d["_id"] = str(d["_id"])
+
+    return {"signals": docs}
 
 @app.get("/api/indicators/{symbol}")
 async def get_indicators(symbol: str):
