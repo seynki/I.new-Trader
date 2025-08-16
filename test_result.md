@@ -282,7 +282,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Frontend: Buy/Sell buttons appear in each row and POST quick-order with controls (valor, expiração, demo/real, binary/digital)"
+    - "Backend: POST /api/trading/quick-order executa ordem real/demo com fx-iqoption; validar troca de conta e retorno order_id"
+    - "Backend: Fallback iqoptionapi quando fx-iqoption indisponível"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
