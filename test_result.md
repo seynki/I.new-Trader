@@ -285,7 +285,6 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Quick Order API: POST /api/trading/quick-order should accept payload and return success (fase 1)"
     - "Frontend: Buy/Sell buttons appear in each row and POST quick-order with controls (valor, expiração, demo/real, binary/digital)"
   stuck_tasks: []
   test_all: false
