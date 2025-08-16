@@ -174,28 +174,46 @@ async def _switch_balance(client_kind: str, client_obj, mode: str):
 async def _place_order(client_kind: str, client_obj, asset: str, direction: str, amount: float, expiration: int, option_type: str):
     loop = asyncio.get_event_loop()
     if client_kind == "fx":
-        # Tentar assinaturas conhecidas
+        # Tentar assinaturas conhecidas com timeout
         try:
             if option_type == "digital":
                 # tentar buy_digital_spot(simbolo, amount, direction, expiration)
                 method = getattr(client_obj, "buy_digital_spot", None)
                 if asyncio.iscoroutinefunction(method):
-                    res = await method(asset, amount, direction, expiration)
+                    res = await asyncio.wait_for(
+                        method(asset, amount, direction, expiration), 
+                        timeout=20.0
+                    )
                 elif callable(method):
-                    res = await loop.run_in_executor(None, method, asset, amount, direction, expiration)
+                    res = await asyncio.wait_for(
+                        loop.run_in_executor(None, method, asset, amount, direction, expiration), 
+                        timeout=20.0
+                    )
                 else:
                     # fallback para buy
                     method2 = getattr(client_obj, "buy", None)
                     if asyncio.iscoroutinefunction(method2):
-                        res = await method2(amount, asset, direction, expiration)
+                        res = await asyncio.wait_for(
+                            method2(amount, asset, direction, expiration), 
+                            timeout=20.0
+                        )
                     else:
-                        res = await loop.run_in_executor(None, method2, amount, asset, direction, expiration)
+                        res = await asyncio.wait_for(
+                            loop.run_in_executor(None, method2, amount, asset, direction, expiration), 
+                            timeout=20.0
+                        )
             else:
                 method = getattr(client_obj, "buy", None)
                 if asyncio.iscoroutinefunction(method):
-                    res = await method(amount, asset, direction, expiration)
+                    res = await asyncio.wait_for(
+                        method(amount, asset, direction, expiration), 
+                        timeout=20.0
+                    )
                 else:
-                    res = await loop.run_in_executor(None, method, amount, asset, direction, expiration)
+                    res = await asyncio.wait_for(
+                        loop.run_in_executor(None, method, amount, asset, direction, expiration), 
+                        timeout=20.0
+                    )
             # Normalizar retorno
             order_id = None
             success = False
@@ -214,6 +232,9 @@ async def _place_order(client_kind: str, client_obj, asset: str, direction: str,
                 success = bool(res)
                 order_id = str(uuid.uuid4()) if success else None
             return success, order_id, expiration_ts
+        except asyncio.TimeoutError:
+            logger.warning("Timeout ao executar ordem via fx-iqoption (20s)")
+            return False, None, None
         except Exception as e:
             logger.warning(f"Falha buy via fx-iqoption: {e}")
             return False, None, None
@@ -223,12 +244,21 @@ async def _place_order(client_kind: str, client_obj, asset: str, direction: str,
             if option_type == "digital":
                 method = getattr(client_obj, "buy_digital_spot", None)
                 if callable(method):
-                    ok, oid = await loop.run_in_executor(None, method, asset, amount, direction, expiration)
+                    ok, oid = await asyncio.wait_for(
+                        loop.run_in_executor(None, method, asset, amount, direction, expiration), 
+                        timeout=20.0
+                    )
                     return bool(ok), str(oid) if oid is not None else None, None
             # binary
             method2 = getattr(client_obj, "buy", None)
-            ok, oid = await loop.run_in_executor(None, method2, amount, asset, direction, expiration)
+            ok, oid = await asyncio.wait_for(
+                loop.run_in_executor(None, method2, amount, asset, direction, expiration), 
+                timeout=20.0
+            )
             return bool(ok), str(oid) if oid is not None else None, None
+        except asyncio.TimeoutError:
+            logger.error("Timeout ao executar ordem via iqoptionapi (20s)")
+            return False, None, None
         except Exception as e:
             logger.error(f"Falha buy via iqoptionapi: {e}")
             return False, None, None
