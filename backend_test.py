@@ -2369,14 +2369,16 @@ class AITradingSystemTester:
         return all_passed
 
 def main():
-    print("🚀 Starting AI Trading System Backend Tests - Current Review Request")
+    print("🚀 Starting AI Trading System Backend Tests - Timeout Resolution Focus")
     print("=" * 80)
     
     tester = AITradingSystemTester()
     
-    # Run focused tests based on current review request
+    # Run focused tests based on current review request - TIMEOUT RESOLUTION
     tests = [
-        tester.test_review_request_focused,  # PRIMARY: Current review request tests
+        tester.test_review_request_focused,  # Backend sanity checks
+        tester.test_timeout_resolution,      # PRIMARY: Timeout resolution tests
+        tester.test_robustness_with_connectivity_issues,  # Robustness tests
     ]
     
     for test in tests:
@@ -2388,16 +2390,18 @@ def main():
     
     # Print final results
     print("\n" + "=" * 50)
-    print(f"📊 BACKEND TEST RESULTS")
+    print(f"📊 BACKEND TEST RESULTS - TIMEOUT RESOLUTION")
     print(f"Tests Run: {tester.tests_run}")
     print(f"Tests Passed: {tester.tests_passed}")
     print(f"Success Rate: {(tester.tests_passed/tester.tests_run*100):.1f}%" if tester.tests_run > 0 else "0%")
     
     if tester.tests_passed == tester.tests_run:
-        print("🎉 All backend tests passed!")
+        print("🎉 All timeout resolution tests passed!")
+        print("✅ The 35s timeout issue appears to be RESOLVED")
         return 0
     else:
-        print("⚠️ Some backend tests failed")
+        print("⚠️ Some timeout resolution tests failed")
+        print("❌ Timeout issues may still exist")
         return 1
 
 if __name__ == "__main__":
