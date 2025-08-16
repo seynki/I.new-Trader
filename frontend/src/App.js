@@ -820,6 +820,7 @@ function App() {
                         </span>
                         {(() => { const key = `${signal.symbol}:call`; const loading = !!pendingOrder[key]; return (
                           <button
+                            data-testid={`buy-btn-${signal.symbol}`}
                             onClick={()=> quickOrder(signal.symbol, 'call')}
                             className={`text-[10px] px-2 py-1 rounded ${loading ? 'bg-green-900 cursor-not-allowed opacity-70' : 'bg-green-700 hover:bg-green-600'} text-white`}
                             title="Buy (call)"
