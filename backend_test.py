@@ -1246,6 +1246,213 @@ class AITradingSystemTester:
         self.tests_run += 1
         return all_passed
 
+    def test_sell_signals_review_request(self):
+        """Test backend emits SELL signals as per review request"""
+        print(f"\n🎯 Testing SELL Signals Review Request...")
+        
+        all_passed = True
+        sell_signals_found = []
+        
+        # 1) Connect to /api/signals?limit=50 and scan for SELL signals, retry up to 3 times
+        print(f"\n1️⃣ Testing /api/signals?limit=50 for SELL signals (up to 3 attempts)...")
+        
+        for attempt in range(1, 4):
+            print(f"\n   Attempt {attempt}/3:")
+            success, response = self.run_test(
+                f"Get Signals - Attempt {attempt}",
+                "GET",
+                "api/signals?limit=50",
+                200
+            )
+            
+            if success and isinstance(response, dict) and 'signals' in response:
+                signals = response['signals']
+                print(f"   📊 Found {len(signals)} total signals")
+                
+                # Scan for SELL signals
+                sell_signals = [s for s in signals if s.get('signal_type') == 'SELL']
+                print(f"   🔴 Found {len(sell_signals)} SELL signals")
+                
+                if sell_signals:
+                    sell_signals_found.extend(sell_signals)
+                    print(f"   ✅ SELL signals found on attempt {attempt}")
+                    break
+                else:
+                    print(f"   ⚠️ No SELL signals found on attempt {attempt}")
+                    if attempt < 3:
+                        print(f"   ⏳ Waiting 20 seconds before next attempt...")
+                        time.sleep(20)
+            else:
+                print(f"   ❌ Failed to get signals on attempt {attempt}")
+                if attempt < 3:
+                    time.sleep(20)
+        
+        if not sell_signals_found:
+            print(f"   ❌ No SELL signals found after 3 attempts")
+            all_passed = False
+            
+            # Get sample of recent signals for analysis
+            print(f"   📋 Getting sample of recent signals for analysis...")
+            success, response = self.run_test(
+                "Sample Recent Signals",
+                "GET",
+                "api/signals?limit=10",
+                200
+            )
+            
+            if success and isinstance(response, dict) and 'signals' in response:
+                signals = response['signals']
+                print(f"   📊 Sample signals analysis:")
+                signal_types = {}
+                confidence_scores = []
+                
+                for signal in signals:
+                    signal_type = signal.get('signal_type', 'UNKNOWN')
+                    signal_types[signal_type] = signal_types.get(signal_type, 0) + 1
+                    
+                    confidence = signal.get('confidence_score', 0)
+                    confidence_scores.append(confidence)
+                
+                print(f"      Signal types: {signal_types}")
+                if confidence_scores:
+                    avg_confidence = sum(confidence_scores) / len(confidence_scores)
+                    min_confidence = min(confidence_scores)
+                    max_confidence = max(confidence_scores)
+                    print(f"      Confidence scores - Avg: {avg_confidence:.1f}, Min: {min_confidence}, Max: {max_confidence}")
+                
+                print(f"   💡 SUGGESTION: Consider relaxing thresholds or adjusting signal generator to produce more SELL signals")
+        else:
+            print(f"   ✅ Found {len(sell_signals_found)} SELL signals total")
+        
+        # 2) Validate /api/signals with filters returns SELL when regimes or symbols are changed
+        print(f"\n2️⃣ Testing /api/signals with filters for SELL signals...")
+        
+        filter_tests = [
+            ("symbols=BTCUSDT,EURUSD", "api/signals?symbols=BTCUSDT,EURUSD&limit=50"),
+            ("regimes=trending,sideways", "api/signals?regimes=trending,sideways&limit=50"),
+            ("since_minutes=240", "api/signals?since_minutes=240&limit=50"),
+            ("combined filters", "api/signals?symbols=BTCUSDT,EURUSD&regimes=trending,sideways&since_minutes=240&limit=50")
+        ]
+        
+        filter_sell_found = False
+        for filter_name, endpoint in filter_tests:
+            print(f"\n   Testing filter: {filter_name}")
+            success, response = self.run_test(
+                f"Filtered Signals - {filter_name}",
+                "GET",
+                endpoint,
+                200
+            )
+            
+            if success and isinstance(response, dict) and 'signals' in response:
+                signals = response['signals']
+                sell_signals = [s for s in signals if s.get('signal_type') == 'SELL']
+                
+                print(f"      📊 Total signals: {len(signals)}, SELL signals: {len(sell_signals)}")
+                
+                if sell_signals:
+                    filter_sell_found = True
+                    print(f"      ✅ SELL signals found with {filter_name}")
+                    
+                    # Show sample SELL signal details
+                    sample_sell = sell_signals[0]
+                    print(f"      📋 Sample SELL signal:")
+                    print(f"         Symbol: {sample_sell.get('symbol', 'N/A')}")
+                    print(f"         Confidence: {sample_sell.get('confidence_score', 'N/A')}")
+                    print(f"         Regime: {sample_sell.get('regime', 'N/A')}")
+                    print(f"         Timeframe: {sample_sell.get('timeframe', 'N/A')}")
+                else:
+                    print(f"      ⚠️ No SELL signals found with {filter_name}")
+            else:
+                print(f"      ❌ Failed to get filtered signals for {filter_name}")
+        
+        if not filter_sell_found:
+            print(f"   ❌ No SELL signals found across any filter combinations")
+            all_passed = False
+        
+        # 3) Assert schema contains required fields: symbol, signal_type, confidence_score, timeframe, justification
+        print(f"\n3️⃣ Validating signal schema contains required fields...")
+        
+        # Use any signals we found (SELL or otherwise) to validate schema
+        test_signals = sell_signals_found if sell_signals_found else []
+        
+        if not test_signals:
+            # Get any signals for schema validation
+            success, response = self.run_test(
+                "Get Signals for Schema Validation",
+                "GET",
+                "api/signals?limit=5",
+                200
+            )
+            
+            if success and isinstance(response, dict) and 'signals' in response:
+                test_signals = response['signals']
+        
+        if test_signals:
+            required_fields = ['symbol', 'signal_type', 'confidence_score', 'timeframe', 'justification']
+            schema_valid = True
+            
+            print(f"   📋 Validating schema on {len(test_signals)} signals...")
+            
+            for i, signal in enumerate(test_signals[:3], 1):  # Check first 3 signals
+                print(f"   Signal {i} schema check:")
+                signal_valid = True
+                
+                for field in required_fields:
+                    if field in signal and signal[field] is not None:
+                        print(f"      ✅ Field '{field}' present: {signal[field]}")
+                    else:
+                        print(f"      ❌ Field '{field}' missing or null")
+                        signal_valid = False
+                        schema_valid = False
+                
+                if signal_valid:
+                    print(f"      ✅ Signal {i} schema valid")
+                else:
+                    print(f"      ❌ Signal {i} schema invalid")
+            
+            if schema_valid:
+                print(f"   ✅ All signals have required schema fields")
+            else:
+                print(f"   ❌ Some signals missing required schema fields")
+                all_passed = False
+        else:
+            print(f"   ❌ No signals available for schema validation")
+            all_passed = False
+        
+        # 4) Final assessment and recommendations
+        print(f"\n4️⃣ Final Assessment...")
+        
+        if sell_signals_found:
+            print(f"   ✅ SUCCESS: Found {len(sell_signals_found)} SELL signals")
+            print(f"   📊 SELL signal details:")
+            
+            for i, signal in enumerate(sell_signals_found[:3], 1):  # Show first 3 SELL signals
+                print(f"      SELL Signal {i}:")
+                print(f"         Symbol: {signal.get('symbol', 'N/A')}")
+                print(f"         Confidence: {signal.get('confidence_score', 'N/A')}%")
+                print(f"         Entry Price: {signal.get('entry_price', 'N/A')}")
+                print(f"         Risk/Reward: {signal.get('risk_reward_ratio', 'N/A')}")
+                print(f"         Timeframe: {signal.get('timeframe', 'N/A')}")
+                print(f"         Regime: {signal.get('regime', 'N/A')}")
+                print(f"         Justification: {signal.get('justification', 'N/A')[:100]}...")
+        else:
+            print(f"   ❌ FAILURE: No SELL signals found after all attempts")
+            print(f"   💡 RECOMMENDATIONS:")
+            print(f"      - Consider lowering confidence score thresholds in signal generator")
+            print(f"      - Adjust technical analysis parameters to detect more bearish conditions")
+            print(f"      - Review market regime detection logic")
+            print(f"      - Ensure signal generation covers both bullish and bearish scenarios")
+        
+        if all_passed:
+            self.tests_passed += 1
+            print(f"\n🎉 SELL signals review request PASSED!")
+        else:
+            print(f"\n❌ SELL signals review request FAILED!")
+        
+        self.tests_run += 1
+        return all_passed
+
 def main():
     print("🚀 Starting AI Trading System Backend Tests - Minimum Score Threshold Validation")
     print("=" * 80)
