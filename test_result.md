@@ -107,15 +107,18 @@ user_problem_statement: "Manter a bolinha verde em troca do cerebro verde atras 
 backend:
   - task: "IQ Option Diagnostics Endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "critical"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Adicionado endpoint GET /api/iq-option/diagnostics que valida: presença de credenciais no backend, resolução DNS de iqoption.com, conexão TCP:443 e HTTPS GET simples. Útil para diferenciar erro de credenciais x bloqueio de rede no ambiente preview."
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - IQ Option Diagnostics Endpoint funcionando corretamente. GET /api/iq-option/diagnostics retorna status=success, summary='OK', env{IQ_EMAIL_present=true, IQ_PASSWORD_present=true}, network{dns_resolved=true, dns_ip='45.88.36.129', tcp_443_ok=true, https_get_ok=true, errors=[]}. Tempo de resposta: 785.89ms. DIAGNÓSTICO: Todas as verificações passaram - credenciais presentes, DNS resolvido, porta 443 acessível, HTTPS funcionando. O erro 'Serviço IQ Option temporariamente indisponível' NÃO é causado por problemas de rede ou credenciais ausentes no ambiente preview. Provável causa: limitações de autenticação da API IQ Option ou restrições temporárias do serviço."
 
   - task: "Review Request Endpoint Testing"
     implemented: true
