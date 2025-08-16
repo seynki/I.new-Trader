@@ -51,50 +51,19 @@ _fx_type = None  # identifica a classe/import utilizada
 _iq_client = None
 
 async def _connect_fx_client():
-    global _fx_client, _fx_type
+    global _fx_client
     if _fx_client is not None:
         return _fx_client
     try:
-        # Tentar múltiplos padrões de import, pois builds variam
-        try:
-            from fxiqoption.stable_api import IQ_Option as FXClass  # tipo estilo iqoptionapi
-            _fx_type = "IQ_Option"
-            candidate = FXClass(IQ_EMAIL, IQ_PASSWORD)
-            loop = asyncio.get_event_loop()
-            # Adicionar timeout de 15 segundos para conexão
-            ok, reason = await asyncio.wait_for(
-                loop.run_in_executor(None, candidate.connect), 
-                timeout=15.0
-            )
-            if ok:
-                _fx_client = candidate
-                logger.info("fx-iqoption conectado (IQ_Option)")
-                return _fx_client
-        except Exception as e:
-            logger.warning(f"fx-iqoption (IQ_Option) falhou: {e}")
-        try:
-            from fxiqoption import IQOption as FXClient
-            _fx_type = "IQOption"
-            # libs novas costumam ser async; tentar await connect()
-            candidate = FXClient(email=IQ_EMAIL, password=IQ_PASSWORD)
-            try:
-                # Adicionar timeout de 15 segundos para conexão
-                ok, reason = await asyncio.wait_for(candidate.connect(), timeout=15.0)
-            except TypeError:
-                # algumas versões retornam bool direto
-                ok = await asyncio.wait_for(candidate.connect(), timeout=15.0)
-                reason = None
-            except asyncio.TimeoutError:
-                logger.error("Timeout ao conectar fx-iqoption (15s)")
-                return None
-            if ok:
-                _fx_client = candidate
-                logger.info("fx-iqoption conectado (IQOption)")
-                return _fx_client
-        except Exception as e:
-            logger.warning(f"fx-iqoption (IQOption) falhou: {e}")
-    except ImportError as e:
-        logger.warning(f"fx-iqoption não disponível: {e}")
+        # Desabilitado temporariamente devido a erros de WebSocket
+        logger.info("fx-iqoption desabilitado temporariamente")
+        return None
+    except ImportError:
+        logger.warning("fx-iqoption não instalado")
+    except asyncio.TimeoutError:
+        logger.error("Timeout ao conectar fx-iqoption (15s)")
+    except Exception as e:
+        logger.error(f"Falha conectando fx-iqoption: {e}")
     return None
 
 async def _connect_iq_fallback():
