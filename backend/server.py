@@ -104,9 +104,13 @@ async def _connect_iq_fallback():
     try:
         from iqoptionapi.api import IQOptionAPI
         candidate = IQOptionAPI(IQ_EMAIL, IQ_PASSWORD)
-        # Métodos são síncronos – usar executor
+        # Métodos são síncronos – usar executor com timeout
         loop = asyncio.get_event_loop()
-        ok, reason = await loop.run_in_executor(None, candidate.connect)
+        # Adicionar timeout de 15 segundos para conexão
+        ok, reason = await asyncio.wait_for(
+            loop.run_in_executor(None, candidate.connect), 
+            timeout=15.0
+        )
         if ok:
             _iq_client = candidate
             logger.info("iqoptionapi conectado (fallback)")
