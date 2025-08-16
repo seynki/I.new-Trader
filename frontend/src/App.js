@@ -503,7 +503,7 @@ function App() {
                   <option value="Forex">Forex</option>
                   <option value="Indices">Indices</option>
                 </select>
-                
+
                 <select 
                   value={selectedTimeframe}
                   onChange={(e) => setSelectedTimeframe(e.target.value)}
@@ -516,6 +516,29 @@ function App() {
                   <option value="4h">4h</option>
                   <option value="1d">1d</option>
                 </select>
+
+                {/* Sensitivity and filters */}
+                <div className="hidden sm:flex items-center space-x-2 ml-2">
+                  <span className="text-xs text-gray-400">Min score</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={notificationSettings.min_score_threshold}
+                    onChange={(e)=> updateNotificationSettings({...notificationSettings, min_score_threshold: parseInt(e.target.value||'0',10)})}
+                    className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-green-400"
+                  />
+                  <span className="text-xs text-gray-400">Max/sign</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={notificationSettings.max_per_symbol || 5}
+                    onChange={(e)=> updateNotificationSettings({...notificationSettings, max_per_symbol: parseInt(e.target.value||'0',10)})}
+                    className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-green-400"
+                  />
+                  <Button variant="outline" size="sm" onClick={()=> fetchInitialData()} className="text-xs">Scan</Button>
+                </div>
               </div>
               
               {/* Streaming Toggle */}
