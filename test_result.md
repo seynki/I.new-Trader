@@ -293,7 +293,7 @@ test_plan:
 
 agent_communication:
   - agent: "main"
-    message: "🧪 Atualização: Implementada Fase 1. Backend: novo endpoint POST /api/trading/quick-order (simulado). Frontend: botões Buy/Sell por linha e controles (Demo/Real, Binary/Digital, Valor, Expiração). Por favor testar: (1) POST /api/trading/quick-order com payload válido; (2) UI envia requisição ao clicar Buy/Sell e adiciona um alerta local de confirmação."
+    message: "🧪 Atualização: Implementada Fase 1.5. Frontend: feedback claro de sucesso/erro nos botões Buy/Sell, com estado de carregamento e exibição de order_id e provider quando disponível. Sem modo simulado (apenas real). Por favor testar cliques Buy/Sell na seção 'Oportunidades ao vivo' confirmando: (a) botão mostra 'Enviando...' durante a requisição; (b) em sucesso, alerta com ID e provider; (c) em erro, alerta 'ERRO' exibindo a mensagem do backend."
   - agent: "testing"
     message: "✅ BACKEND TESTING COMPLETED - All high-priority backend tasks are working correctly. Notification system fully functional with proper endpoint responses, alert generation, and WebSocket connectivity. IQ Option integration working for notifications. Signal processing enhanced and generating quality signals. Fixed WebSocket dependency issue by installing uvicorn[standard] and websockets. System is ready for production use. All critical backend functionality verified and operational."
   - agent: "testing"
