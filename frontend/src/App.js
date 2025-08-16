@@ -727,6 +727,8 @@ function App() {
                         <div className="text-gray-400 text-center">EMA9/21</div>
                       </div>
                       <div className="text-xs text-gray-400 text-center">{signal.quality || 'normal'}</div>
+                      {/* Reason line */}
+                      <div className="col-span-12 text-[10px] text-gray-500 mt-1">{signal.justification}</div>
                     </div>
                   ))}
                   
