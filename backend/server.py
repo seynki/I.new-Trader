@@ -94,8 +94,8 @@ async def _connect_iq_fallback():
     if _iq_client is not None:
         return _iq_client
     try:
-        from iqoptionapi.stable_api import IQ_Option
-        candidate = IQ_Option(IQ_EMAIL, IQ_PASSWORD)
+        from iqoptionapi.api import IQOptionAPI
+        candidate = IQOptionAPI(IQ_EMAIL, IQ_PASSWORD)
         # Métodos são síncronos – usar executor
         loop = asyncio.get_event_loop()
         ok, reason = await loop.run_in_executor(None, candidate.connect)
