@@ -57,7 +57,7 @@ async def _connect_fx_client():
     try:
         # Tentar múltiplos padrões de import, pois builds variam
         try:
-            from fx_iqoption import IQ_Option as FXClass  # tipo estilo iqoptionapi
+            from fxiqoption.stable_api import IQ_Option as FXClass  # tipo estilo iqoptionapi
             _fx_type = "IQ_Option"
             candidate = FXClass(IQ_EMAIL, IQ_PASSWORD)
             loop = asyncio.get_event_loop()
@@ -69,8 +69,8 @@ async def _connect_fx_client():
         except Exception as e:
             logger.warning(f"fx-iqoption (IQ_Option) falhou: {e}")
         try:
-            from fx_iqoption.client import IQOptionClient as FXClient
-            _fx_type = "IQOptionClient"
+            from fxiqoption import IQOption as FXClient
+            _fx_type = "IQOption"
             # libs novas costumam ser async; tentar await connect()
             candidate = FXClient(email=IQ_EMAIL, password=IQ_PASSWORD)
             try:
@@ -81,10 +81,10 @@ async def _connect_fx_client():
                 reason = None
             if ok:
                 _fx_client = candidate
-                logger.info("fx-iqoption conectado (IQOptionClient)")
+                logger.info("fx-iqoption conectado (IQOption)")
                 return _fx_client
         except Exception as e:
-            logger.warning(f"fx-iqoption (IQOptionClient) falhou: {e}")
+            logger.warning(f"fx-iqoption (IQOption) falhou: {e}")
     except ImportError as e:
         logger.warning(f"fx-iqoption não disponível: {e}")
     return None
