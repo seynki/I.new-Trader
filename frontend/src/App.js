@@ -451,6 +451,7 @@ function App() {
                                     </div>
                                   )}
                                   <p className="text-xs font-medium text-gray-200">
+                                    {alert.signal_type ? (alert.signal_type === 'buy' ? 'BUY' : 'SELL') + ' • ' : ''}
                                     {alert.symbol ? formatIQOptionSymbol(alert.symbol) : alert.title}
                                   </p>
                                 </div>
