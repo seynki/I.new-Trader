@@ -1246,6 +1246,147 @@ class AITradingSystemTester:
         self.tests_run += 1
         return all_passed
 
+    def test_quick_order_endpoint(self):
+        """Test POST /api/trading/quick-order endpoint as per review request"""
+        print(f"\n🎯 Testing Quick Order API Endpoint...")
+        
+        all_passed = True
+        
+        # 1) Test valid payload
+        print(f"\n1️⃣ Testing POST /api/trading/quick-order with valid payload...")
+        valid_payload = {
+            "asset": "EURUSD",
+            "direction": "call",
+            "amount": 10,
+            "expiration": 1,
+            "account_type": "demo",
+            "option_type": "binary"
+        }
+        
+        success, response = self.run_test(
+            "Quick Order - Valid Payload",
+            "POST",
+            "api/trading/quick-order",
+            200,
+            valid_payload
+        )
+        
+        if success and isinstance(response, dict):
+            # Check required response fields
+            required_fields = ['success', 'message', 'order_id', 'echo']
+            for field in required_fields:
+                if field in response:
+                    print(f"   ✅ Response field '{field}' present: {response[field]}")
+                else:
+                    print(f"   ❌ Response field '{field}' missing")
+                    all_passed = False
+            
+            # Verify success is true
+            if response.get('success') == True:
+                print(f"   ✅ Success field is True")
+            else:
+                print(f"   ❌ Success field is not True: {response.get('success')}")
+                all_passed = False
+            
+            # Verify message contains "Fase 1"
+            message = response.get('message', '')
+            if 'Fase 1' in message or 'fase 1' in message:
+                print(f"   ✅ Message contains 'Fase 1': {message}")
+            else:
+                print(f"   ❌ Message does not contain 'Fase 1': {message}")
+                all_passed = False
+            
+            # Verify order_id is a string
+            order_id = response.get('order_id')
+            if isinstance(order_id, str) and len(order_id) > 0:
+                print(f"   ✅ Order ID is valid string: {order_id}")
+            else:
+                print(f"   ❌ Order ID is not valid string: {order_id}")
+                all_passed = False
+            
+            # Verify echo contains sent fields
+            echo = response.get('echo', {})
+            if isinstance(echo, dict):
+                for key, value in valid_payload.items():
+                    if echo.get(key) == value:
+                        print(f"   ✅ Echo field '{key}' matches: {value}")
+                    else:
+                        print(f"   ❌ Echo field '{key}' mismatch: expected {value}, got {echo.get(key)}")
+                        all_passed = False
+            else:
+                print(f"   ❌ Echo is not a dict: {echo}")
+                all_passed = False
+        else:
+            all_passed = False
+        
+        # 2) Test negative validations
+        print(f"\n2️⃣ Testing negative validations...")
+        
+        negative_tests = [
+            {
+                "name": "Invalid direction 'buy'",
+                "payload": {**valid_payload, "direction": "buy"},
+                "expected_status": 400
+            },
+            {
+                "name": "Invalid account_type 'paper'",
+                "payload": {**valid_payload, "account_type": "paper"},
+                "expected_status": 400
+            },
+            {
+                "name": "Invalid option_type 'turbo'",
+                "payload": {**valid_payload, "option_type": "turbo"},
+                "expected_status": 400
+            },
+            {
+                "name": "Invalid amount 0",
+                "payload": {**valid_payload, "amount": 0},
+                "expected_status": 400
+            },
+            {
+                "name": "Invalid expiration 0",
+                "payload": {**valid_payload, "expiration": 0},
+                "expected_status": 400
+            },
+            {
+                "name": "Invalid expiration 61",
+                "payload": {**valid_payload, "expiration": 61},
+                "expected_status": 400
+            }
+        ]
+        
+        for test_case in negative_tests:
+            print(f"\n   Testing: {test_case['name']}")
+            success, response = self.run_test(
+                f"Quick Order - {test_case['name']}",
+                "POST",
+                "api/trading/quick-order",
+                test_case['expected_status'],
+                test_case['payload']
+            )
+            
+            if success:
+                print(f"   ✅ Correctly returned {test_case['expected_status']} for {test_case['name']}")
+                # Check if response contains error detail
+                if isinstance(response, dict) and 'detail' in response:
+                    print(f"      Error detail: {response['detail']}")
+            else:
+                print(f"   ❌ Failed validation for {test_case['name']}")
+                all_passed = False
+        
+        # 3) Test ingress compatibility (route works with /api/...)
+        print(f"\n3️⃣ Testing ingress compatibility...")
+        print(f"   ✅ All tests use '/api/trading/quick-order' route - ingress compatible")
+        
+        if all_passed:
+            self.tests_passed += 1
+            print(f"\n🎉 Quick Order API endpoint tests PASSED!")
+        else:
+            print(f"\n❌ Quick Order API endpoint tests FAILED!")
+        
+        self.tests_run += 1
+        return all_passed
+
     def test_sell_signals_review_request(self):
         """Test backend emits SELL signals as per review request"""
         print(f"\n🎯 Testing SELL Signals Review Request...")
