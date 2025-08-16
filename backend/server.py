@@ -61,7 +61,11 @@ async def _connect_fx_client():
             _fx_type = "IQ_Option"
             candidate = FXClass(IQ_EMAIL, IQ_PASSWORD)
             loop = asyncio.get_event_loop()
-            ok, reason = await loop.run_in_executor(None, candidate.connect)
+            # Adicionar timeout de 15 segundos para conexão
+            ok, reason = await asyncio.wait_for(
+                loop.run_in_executor(None, candidate.connect), 
+                timeout=15.0
+            )
             if ok:
                 _fx_client = candidate
                 logger.info("fx-iqoption conectado (IQ_Option)")
