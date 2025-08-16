@@ -520,15 +520,15 @@ function App() {
 
               {/* Asset Filter */}
               <div className="flex items-center space-x-2">
-                <select 
-                  value={selectedAssets}
-                  onChange={(e) => setSelectedAssets(e.target.value)}
-                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1 text-sm text-green-400 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                {/* Symbols multi-select */}
+                <select multiple
+                  value={selectedSymbols}
+                  onChange={(e) => setSelectedSymbols(Array.from(e.target.selectedOptions).map(o=>o.value))}
+                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1 text-sm text-green-400 focus:ring-2 focus:ring-green-500 focus:border-transparent min-w-[140px]"
                 >
-                  <option value="All">All</option>
-                  <option value="Crypto">Crypto</option>
-                  <option value="Forex">Forex</option>
-                  <option value="Indices">Indices</option>
+                  {allSymbols.map(s => (
+                    <option key={s.symbol} value={s.symbol}>{s.symbol}</option>
+                  ))}
                 </select>
 
                 <select 
