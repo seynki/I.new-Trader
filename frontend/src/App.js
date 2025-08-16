@@ -575,6 +575,16 @@ function App() {
                     className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-green-400"
                   />
                   <Button variant="outline" size="sm" onClick={()=> fetchInitialData()} className="text-xs">Scan</Button>
+                  <a
+                    href={`${BACKEND_URL}/api/signals/export?${new URLSearchParams({
+                      symbols: selectedSymbols.join(','),
+                      regimes: selectedRegime === 'All' ? '' : selectedRegime,
+                      since_minutes: String(sinceMinutes),
+                      max_per_symbol: String(notificationSettings.max_per_symbol || 0),
+                      limit: '200'
+                    }).toString()}`}
+                    className="text-xs ml-2 px-2 py-1 border border-gray-700 rounded text-green-400 hover:bg-gray-800"
+                  >Export CSV</a>
                 </div>
               </div>
               
