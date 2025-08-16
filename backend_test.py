@@ -1959,7 +1959,8 @@ class AITradingSystemTester:
             "POST",
             "api/trading/quick-order",
             [200, 500, 502],  # Accept 500/502 as mentioned in review request
-            valid_payload
+            valid_payload,
+            timeout=30  # Longer timeout for IQ Option connection attempts
         )
         
         if success:
