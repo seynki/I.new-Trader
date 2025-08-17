@@ -2788,18 +2788,18 @@ def main():
     
     # Print final results
     print("\n" + "=" * 50)
-    print(f"📊 BACKEND TEST RESULTS - TIMEOUT RESOLUTION")
+    print(f"📊 BACKEND TEST RESULTS - REVIEW REQUEST")
     print(f"Tests Run: {tester.tests_run}")
     print(f"Tests Passed: {tester.tests_passed}")
     print(f"Success Rate: {(tester.tests_passed/tester.tests_run*100):.1f}%" if tester.tests_run > 0 else "0%")
     
     if tester.tests_passed == tester.tests_run:
-        print("🎉 All timeout resolution tests passed!")
-        print("✅ The 35s timeout issue appears to be RESOLVED")
+        print("🎉 All review request tests passed!")
+        print("✅ POST /api/trading/quick-order endpoint working correctly")
         return 0
     else:
-        print("⚠️ Some timeout resolution tests failed")
-        print("❌ Timeout issues may still exist")
+        print("⚠️ Some review request tests failed")
+        print("❌ Issues found with POST /api/trading/quick-order endpoint")
         return 1
 
 if __name__ == "__main__":
