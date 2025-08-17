@@ -37,8 +37,9 @@ app.add_middleware(
 
 # MongoDB
 MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+DB_NAME = os.getenv("DB_NAME", "typeia_trading")
 client = AsyncIOMotorClient(MONGO_URL)
-db = client.typeia_trading
+db = client[DB_NAME]
 
 # ====== IQ Option Execução - Config & Helpers (fx-iqoption com fallback iqoptionapi) ======
 IQ_EMAIL = os.getenv("IQ_EMAIL")
