@@ -1517,6 +1517,37 @@ async def test_iq_option_connection():
         "note": "Simulação sem execução de ordens. Saldo varia em tempo real."
     }
 
+@app.post("/api/iq-option/live-login-check")
+async def iq_option_live_login_check():
+    """
+    Tenta autenticar na IQ Option (sem enviar ordens) e retorna diagnóstico detalhado:
+    - provider usado (fx-iqoption ou iqoptionapi)
+    - sucesso/erro, mensagem e tempos
+    """
+    start = time.time()
+    if not IQ_EMAIL or not IQ_PASSWORD:
+        raise HTTPException(status_code=500, detail="Credenciais IQ_EMAIL/IQ_PASSWORD ausentes no backend")
+
+    result = {"provider": None, "connected": False, "message": "", "elapsed_ms": 0}
+    try:
+        kind, client_obj = await asyncio.wait_for(_ensure_connected_prefer_fx(), timeout=45.0)
+        result["provider"] = "fx-iqoption" if kind == "fx" else "iqoptionapi"
+        result["connected"] = True
+        result["message"] = "Login OK"
+    except asyncio.TimeoutError:
+        result["message"] = "Timeout na autenticação"
+        raise HTTPException(status_code=504, detail=result["message"])
+    except HTTPException as he:
+        result["message"] = str(he.detail)
+        raise
+    except Exception as e:
+        result["message"] = f"Erro: {e}"
+        raise HTTPException(status_code=503, detail=result["message"])
+    finally:
+        result["elapsed_ms"] = int((time.time() - start) * 1000)
+        logger.info(f"Live login check: {result}")
+    return result
+
 @app.post("/api/iq-option/format-signal/{signal_id}")
 async def format_signal_for_iq_option(signal_id: str):
     """Formata um sinal para o formato IQ Option"""
