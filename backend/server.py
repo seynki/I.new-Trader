@@ -1673,12 +1673,32 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
                 
                 if success and oid:
                     logger.info(f"Ordem executada com sucesso: {oid}")
+                    # Emitir alerta de execução (sucesso)
+                    try:
+                        alert = {
+                            "id": str(uuid.uuid4()),
+                            "signal_id": str(oid),
+                            "alert_type": "order_execution",
+                            "title": f"✅ Ordem enviada - {normalized}",
+                            "message": f"ID: {oid} • {order.direction.upper()} • ${order.amount} • exp {order.expiration}m • via {('fx-iqoption' if kind=='fx' else 'iqoptionapi')}",
+                            "priority": "high",
+                            "timestamp": datetime.now(),
+                            "signal_type": "buy" if order.direction == "call" else "sell",
+                            "symbol": normalized,
+                            "iq_option_ready": True,
+                            "read": False,
+                        }
+                        await db.alerts.insert_one({**alert, "timestamp": alert["timestamp"]})
+                        await broadcast_message(json.dumps({"type": "trading_alert", "data": alert}, default=str))
+                    except Exception as e:
+                        logger.warning(f"Falha ao publicar alerta de execução: {e}")
+
                     return QuickOrderResponse(
                         success=True,
                         message="Ordem enviada com sucesso",
                         order_id=str(oid),
                         echo={
-                            "asset": order.asset,
+                            "asset": normalized,
                             "direction": order.direction,
                             "amount": order.amount,
                             "expiration": order.expiration,
