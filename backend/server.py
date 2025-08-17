@@ -403,12 +403,13 @@ class NotificationSettings(BaseModel):
 class TradingAlert(BaseModel):
     id: str
     signal_id: str
-    alert_type: str  # "new_signal", "stop_loss", "take_profit"
+    alert_type: str  # "new_signal", "stop_loss", "take_profit", "order_execution"
     title: str
     message: str
     priority: str  # "low", "medium", "high", "critical"
     timestamp: datetime
     signal_type: Optional[str] = None  # 'buy' or 'sell' (en-US)
+    symbol: Optional[str] = None
     read: bool = False
     iq_option_ready: bool = False
 
