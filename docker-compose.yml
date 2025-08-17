@@ -1,0 +1,43 @@
+version: "3.9"
+services:
+  mongo:
+    image: mongo:7
+    container_name: typeia-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: typeia_trading
+
+  backend:
+    build:
+      context: ./backend
+    container_name: typeia-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      - MONGO_URL=mongodb://mongo:27017
+      - DB_NAME=typeia_trading
+    depends_on:
+      - mongo
+    ports:
+      - "8001:8001"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: typeia-frontend
+    restart: unless-stopped
+    environment:
+      - REACT_APP_BACKEND_URL=http://localhost:8001
+      - WDS_SOCKET_PORT=3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
