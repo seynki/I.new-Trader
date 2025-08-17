@@ -11,7 +11,7 @@ def main():
     print("=" * 60)
     
     # Get the backend URL from frontend .env
-    backend_url = "https://service-recovery-1.preview.emergentagent.com"
+    backend_url = "https://trade-trigger-bot-1.preview.emergentagent.com"
     
     tester = AITradingSystemTester(base_url=backend_url)
     
