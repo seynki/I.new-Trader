@@ -21,6 +21,7 @@ services:
     environment:
       - MONGO_URL=mongodb://mongo:27017
       - DB_NAME=typeia_trading
+      - IQ_USE_FX=0
     depends_on:
       - mongo
     ports:
