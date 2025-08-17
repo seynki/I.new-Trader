@@ -281,7 +281,14 @@ function App() {
 
   const testIQOptionConnection = async () => {
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/iq-option/test-connection`);
+      // Tenta login real; se falhar, cai para teste simulado
+      let response;
+      try {
+        response = await axios.post(`${BACKEND_URL}/api/iq-option/live-login-check`);
+      } catch (e) {
+        // fallback para teste simulado quando em preview ou bloqueado
+        response = await axios.post(`${BACKEND_URL}/api/iq-option/test-connection`);
+      }
       setIqOptionStatus(response.data);
       setLastIqUpdate(new Date());
     } catch (error) {
