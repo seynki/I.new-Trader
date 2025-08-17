@@ -238,6 +238,28 @@ async def _switch_balance(client_kind: str, client_obj, mode: str):
     except Exception as e:
         logger.warning(f"Falha ao trocar conta para {target}: {e}")
 
+def _normalize_asset_for_iq(asset: str) -> str:
+    """Normaliza o ativo para formato aceito pela IQ Option.
+    - Forex: EURUSD permanece EURUSD; em fins de semana: EURUSD-OTC
+    - Cripto: BTCUSDT -> BTCUSD; ETHUSDT -> ETHUSD
+    - Outros terminando em USD mantidos
+    """
+    try:
+        a = (asset or '').upper().strip()
+        if len(a) == 6 and a.isalpha():
+            # Forex pair, adicionar -OTC em fins de semana
+            dow = datetime.now().weekday()  # 0=seg..6=dom
+            if dow in (5, 6):
+                return f"{a}-OTC"
+            return a
+        if a.endswith("USDT"):
+            return a[:-1]  # remove o 'T' -> BTCUSDT => BTCUSD
+        if a.endswith("USD"):
+            return a
+        return a
+    except Exception:
+        return asset
+
 async def _place_order(client_kind: str, client_obj, asset: str, direction: str, amount: float, expiration: int, option_type: str):
     loop = asyncio.get_event_loop()
     if client_kind == "fx":
