@@ -1714,6 +1714,26 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
                     await asyncio.sleep(2)  # Aguardar antes do retry
                     continue
                 else:
+                    # Emitir alerta de falha
+                    try:
+                        fail_id = str(uuid.uuid4())
+                        alert = {
+                            "id": fail_id,
+                            "signal_id": fail_id,
+                            "alert_type": "order_execution",
+                            "title": f"❌ Falha ao enviar ordem - {normalized}",
+                            "message": "Falha ao enviar ordem à corretora após múltiplas tentativas",
+                            "priority": "critical",
+                            "timestamp": datetime.now(),
+                            "signal_type": "buy" if order.direction == "call" else "sell",
+                            "symbol": normalized,
+                            "iq_option_ready": False,
+                            "read": False,
+                        }
+                        await db.alerts.insert_one({**alert, "timestamp": alert["timestamp"]})
+                        await broadcast_message(json.dumps({"type": "trading_alert", "data": alert}, default=str))
+                    except Exception as e:
+                        logger.warning(f"Falha ao publicar alerta de erro: {e}")
                     raise HTTPException(status_code=502, detail="Falha ao enviar ordem à corretora após múltiplas tentativas")
                     
             except asyncio.TimeoutError:
