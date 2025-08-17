@@ -1665,8 +1665,9 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
         max_retries = 2
         for attempt in range(max_retries + 1):
             try:
+                normalized = _normalize_asset_for_iq(order.asset)
                 success, oid, exp_ts = await _place_order(
-                    kind, client_obj, order.asset, order.direction, 
+                    kind, client_obj, normalized, order.direction, 
                     float(order.amount), int(order.expiration), order.option_type
                 )
                 
