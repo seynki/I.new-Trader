@@ -1742,6 +1742,26 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
                     await asyncio.sleep(2)
                     continue
                 else:
+                    # Emitir alerta de timeout
+                    try:
+                        fail_id = str(uuid.uuid4())
+                        alert = {
+                            "id": fail_id,
+                            "signal_id": fail_id,
+                            "alert_type": "order_execution",
+                            "title": f"⚠️ Timeout ao enviar ordem - {normalized}",
+                            "message": "A corretora pode estar sobrecarregada. Tente novamente.",
+                            "priority": "high",
+                            "timestamp": datetime.now(),
+                            "signal_type": "buy" if order.direction == "call" else "sell",
+                            "symbol": normalized,
+                            "iq_option_ready": False,
+                            "read": False,
+                        }
+                        await db.alerts.insert_one({**alert, "timestamp": alert["timestamp"]})
+                        await broadcast_message(json.dumps({"type": "trading_alert", "data": alert}, default=str))
+                    except Exception as e:
+                        logger.warning(f"Falha ao publicar alerta de timeout: {e}")
                     raise HTTPException(
                         status_code=504, 
                         detail="Timeout ao executar ordem. A corretora pode estar sobrecarregada."
