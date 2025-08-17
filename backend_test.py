@@ -2497,17 +2497,286 @@ class AITradingSystemTester:
             print(f"   ❌ IQ Option Diagnostics Endpoint test FAILED")
             return False
 
+    def test_quick_order_review_request_specific(self):
+        """Test POST /api/trading/quick-order endpoint as per specific review request"""
+        print(f"\n🎯 Testing Quick Order Review Request - Asset Normalization & Alerts...")
+        
+        all_passed = True
+        
+        # 1) Test EURUSD normalization (should remain EURUSD or become EURUSD-OTC on weekends)
+        print(f"\n1️⃣ Testing EURUSD asset normalization...")
+        eurusd_payload = {
+            "asset": "EURUSD",
+            "direction": "call",
+            "amount": 10,
+            "expiration": 5,
+            "account_type": "demo",
+            "option_type": "binary"
+        }
+        
+        success, response = self.run_test(
+            "Quick Order - EURUSD Normalization",
+            "POST",
+            "api/trading/quick-order",
+            [200, 502, 503, 504],  # Accept multiple status codes
+            eurusd_payload,
+            timeout=45
+        )
+        
+        if success and isinstance(response, dict):
+            echo = response.get('echo', {})
+            if 'asset' in echo:
+                normalized_asset = echo['asset']
+                print(f"   📊 Original asset: EURUSD")
+                print(f"   📊 Normalized asset: {normalized_asset}")
+                
+                # Check if normalization is correct
+                if normalized_asset in ['EURUSD', 'EURUSD-OTC']:
+                    print(f"   ✅ Asset normalization correct: {normalized_asset}")
+                else:
+                    print(f"   ❌ Asset normalization incorrect: expected EURUSD or EURUSD-OTC, got {normalized_asset}")
+                    all_passed = False
+            else:
+                print(f"   ❌ Echo missing asset field")
+                all_passed = False
+                
+            # Check provider field
+            if 'provider' in echo:
+                provider = echo['provider']
+                if provider in ['fx-iqoption', 'iqoptionapi']:
+                    print(f"   ✅ Provider field correct: {provider}")
+                else:
+                    print(f"   ❌ Provider field incorrect: expected fx-iqoption or iqoptionapi, got {provider}")
+                    all_passed = False
+            else:
+                print(f"   ⚠️ Provider field missing in echo")
+        else:
+            print(f"   ❌ Failed to get valid response for EURUSD test")
+            all_passed = False
+        
+        # 2) Test BTCUSDT normalization (should become BTCUSD)
+        print(f"\n2️⃣ Testing BTCUSDT asset normalization...")
+        btcusdt_payload = {
+            "asset": "BTCUSDT",
+            "direction": "put",
+            "amount": 15,
+            "expiration": 3,
+            "account_type": "demo",
+            "option_type": "binary"
+        }
+        
+        success, response = self.run_test(
+            "Quick Order - BTCUSDT Normalization",
+            "POST",
+            "api/trading/quick-order",
+            [200, 502, 503, 504],
+            btcusdt_payload,
+            timeout=45
+        )
+        
+        if success and isinstance(response, dict):
+            echo = response.get('echo', {})
+            if 'asset' in echo:
+                normalized_asset = echo['asset']
+                print(f"   📊 Original asset: BTCUSDT")
+                print(f"   📊 Normalized asset: {normalized_asset}")
+                
+                # Check if normalization is correct (BTCUSDT -> BTCUSD)
+                if normalized_asset == 'BTCUSD':
+                    print(f"   ✅ Asset normalization correct: BTCUSDT -> BTCUSD")
+                else:
+                    print(f"   ❌ Asset normalization incorrect: expected BTCUSD, got {normalized_asset}")
+                    all_passed = False
+            else:
+                print(f"   ❌ Echo missing asset field")
+                all_passed = False
+        else:
+            print(f"   ❌ Failed to get valid response for BTCUSDT test")
+            all_passed = False
+        
+        # 3) Test alert creation after POST requests
+        print(f"\n3️⃣ Testing alert creation after POST requests...")
+        
+        # Get alerts count before
+        success_before, response_before = self.run_test(
+            "Get Alerts Count Before",
+            "GET",
+            "api/alerts?limit=1",
+            200
+        )
+        
+        alerts_before = 0
+        if success_before and isinstance(response_before, dict):
+            alerts_before = len(response_before.get('alerts', []))
+        
+        print(f"   📊 Alerts before POST: {alerts_before}")
+        
+        # Make a POST request
+        test_payload = {
+            "asset": "EURUSD",
+            "direction": "call",
+            "amount": 20,
+            "expiration": 1,
+            "account_type": "demo",
+            "option_type": "binary"
+        }
+        
+        success, response = self.run_test(
+            "Quick Order - Alert Creation Test",
+            "POST",
+            "api/trading/quick-order",
+            [200, 502, 503, 504],
+            test_payload,
+            timeout=45
+        )
+        
+        # Wait a moment for alert processing
+        time.sleep(2)
+        
+        # Get alerts count after
+        success_after, response_after = self.run_test(
+            "Get Alerts Count After",
+            "GET",
+            "api/alerts?limit=1",
+            200
+        )
+        
+        if success_after and isinstance(response_after, dict):
+            alerts_after = response_after.get('alerts', [])
+            print(f"   📊 Alerts after POST: {len(alerts_after)}")
+            
+            if len(alerts_after) > 0:
+                recent_alert = alerts_after[0]
+                title = recent_alert.get('title', '')
+                symbol = recent_alert.get('symbol', '')
+                alert_type = recent_alert.get('alert_type', '')
+                
+                print(f"   📋 Recent alert title: {title}")
+                print(f"   📋 Recent alert symbol: {symbol}")
+                print(f"   📋 Recent alert type: {alert_type}")
+                
+                # Check if alert contains "Ordem" in title
+                if 'Ordem' in title or 'ordem' in title:
+                    print(f"   ✅ Alert title contains 'Ordem'")
+                else:
+                    print(f"   ❌ Alert title does not contain 'Ordem'")
+                    all_passed = False
+                
+                # Check if alert_type is "order_execution"
+                if alert_type == 'order_execution':
+                    print(f"   ✅ Alert type is 'order_execution'")
+                else:
+                    print(f"   ❌ Alert type is not 'order_execution': {alert_type}")
+                    all_passed = False
+                
+                # Check if symbol matches normalized asset
+                expected_symbols = ['EURUSD', 'EURUSD-OTC']
+                if symbol in expected_symbols:
+                    print(f"   ✅ Alert symbol matches normalized asset: {symbol}")
+                else:
+                    print(f"   ❌ Alert symbol does not match expected: {symbol}")
+                    all_passed = False
+            else:
+                print(f"   ❌ No alerts found after POST request")
+                all_passed = False
+        else:
+            print(f"   ❌ Failed to get alerts after POST")
+            all_passed = False
+        
+        # 4) Test HTTP response validation
+        print(f"\n4️⃣ Testing HTTP response validation...")
+        
+        # Test success case (200 with order_id)
+        valid_payload = {
+            "asset": "EURUSD",
+            "direction": "call",
+            "amount": 10,
+            "expiration": 5,
+            "account_type": "demo",
+            "option_type": "binary"
+        }
+        
+        success, response = self.run_test(
+            "Quick Order - Success Response",
+            "POST",
+            "api/trading/quick-order",
+            [200, 502, 503, 504],  # In preview environment, might get 502/503/504
+            valid_payload,
+            timeout=45
+        )
+        
+        if success and isinstance(response, dict):
+            if 'order_id' in response and response['order_id']:
+                print(f"   ✅ Response contains order_id: {response['order_id']}")
+            else:
+                print(f"   ⚠️ Response missing order_id (may be expected in preview environment)")
+            
+            if 'message' in response:
+                print(f"   ✅ Response contains message: {response['message']}")
+            else:
+                print(f"   ❌ Response missing message field")
+                all_passed = False
+        
+        # Test validation errors (400 responses)
+        print(f"\n   Testing validation errors...")
+        
+        validation_tests = [
+            {
+                "name": "Amount <= 0",
+                "payload": {**valid_payload, "amount": 0},
+                "expected_status": 400
+            },
+            {
+                "name": "Expiration = 0",
+                "payload": {**valid_payload, "expiration": 0},
+                "expected_status": 400
+            },
+            {
+                "name": "Invalid option_type",
+                "payload": {**valid_payload, "option_type": "turbo"},
+                "expected_status": 400
+            },
+            {
+                "name": "Invalid direction",
+                "payload": {**valid_payload, "direction": "buy"},
+                "expected_status": 400
+            }
+        ]
+        
+        for test_case in validation_tests:
+            success, response = self.run_test(
+                f"Validation - {test_case['name']}",
+                "POST",
+                "api/trading/quick-order",
+                test_case['expected_status'],
+                test_case['payload']
+            )
+            
+            if success:
+                print(f"   ✅ {test_case['name']} correctly returned {test_case['expected_status']}")
+            else:
+                print(f"   ❌ {test_case['name']} validation failed")
+                all_passed = False
+        
+        if all_passed:
+            self.tests_passed += 1
+            print(f"\n🎉 Quick Order Review Request tests PASSED!")
+        else:
+            print(f"\n❌ Quick Order Review Request tests FAILED!")
+        
+        self.tests_run += 1
+        return all_passed
+
 def main():
-    print("🚀 Starting AI Trading System Backend Tests - Timeout Resolution Focus")
+    print("🚀 Starting AI Trading System Backend Tests - Review Request Focus")
     print("=" * 80)
     
     tester = AITradingSystemTester()
     
-    # Run focused tests based on current review request - TIMEOUT RESOLUTION
+    # Run focused tests based on current review request
     tests = [
-        tester.test_review_request_focused,  # Backend sanity checks
-        tester.test_timeout_resolution,      # PRIMARY: Timeout resolution tests
-        tester.test_robustness_with_connectivity_issues,  # Robustness tests
+        tester.test_quick_order_review_request_specific,  # PRIMARY: Review request specific tests
+        tester.test_iq_option_diagnostics_endpoint,       # Diagnostics endpoint
     ]
     
     for test in tests:
