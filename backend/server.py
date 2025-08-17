@@ -1645,6 +1645,9 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
 
         logger.info(f"Iniciando ordem: {order.asset} {order.direction} ${order.amount}")
         
+        # Normalizar ativo para IQ Option
+        normalized = _normalize_asset_for_iq(order.asset)
+
         # Garantir conexão (prefere fx) com timeout total
         try:
             kind, client_obj = await asyncio.wait_for(
