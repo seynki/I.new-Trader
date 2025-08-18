@@ -1759,6 +1759,59 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
                     await asyncio.sleep(2)  # Aguardar antes do retry
                     continue
                 else:
+                    # Tentar Bridge como fallback
+                    if BRIDGE_URL:
+                        try:
+                            import httpx
+                            payload = {
+                                "asset": normalized,
+                                "direction": order.direction,
+                                "amount": float(order.amount),
+                                "expiration": int(order.expiration),
+                                "account_type": order.account_type,
+                                "option_type": order.option_type,
+                            }
+                            async with httpx.AsyncClient(timeout=20.0) as client:
+                                r = await client.post(f"{BRIDGE_URL}/bridge/quick-order", json=payload)
+                                if r.status_code == 200:
+                                    data = r.json()
+                                    logger.info(f"Bridge executou ordem: {data}")
+                                    # Emitir alerta de sucesso via bridge
+                                    alert = {
+                                        "id": str(uuid.uuid4()),
+                                        "signal_id": str(uuid.uuid4()),
+                                        "alert_type": "order_execution",
+                                        "title": f"✅ Ordem via Bridge - {normalized}",
+                                        "message": f"{order.direction.upper()} • ${order.amount} • exp {order.expiration}m • via bridge",
+                                        "priority": "high",
+                                        "timestamp": datetime.now(),
+                                        "signal_type": "buy" if order.direction == "call" else "sell",
+                                        "symbol": normalized,
+                                        "iq_option_ready": True,
+                                        "read": False,
+                                    }
+                                    try:
+                                        await db.alerts.insert_one({**alert, "timestamp": alert["timestamp"]})
+                                    except Exception:
+                                        pass
+                                    await broadcast_message(json.dumps({"type": "trading_alert", "data": alert}, default=str))
+                                    return QuickOrderResponse(
+                                        success=True,
+                                        message="Ordem enviada via Bridge",
+                                        order_id=None,
+                                        echo={
+                                            "asset": normalized,
+                                            "direction": order.direction,
+                                            "amount": order.amount,
+                                            "expiration": order.expiration,
+                                            "account_type": order.account_type,
+                                            "option_type": order.option_type,
+                                            "provider": "bridge"
+                                        }
+                                    )
+                        except Exception as e:
+                            logger.warning(f"Falha no Bridge fallback: {e}")
+                    
                     # Emitir alerta de falha
                     try:
                         fail_id = str(uuid.uuid4())
