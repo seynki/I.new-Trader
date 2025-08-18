@@ -48,6 +48,7 @@ db = client[DB_NAME]
 IQ_EMAIL = os.getenv("IQ_EMAIL")
 IQ_PASSWORD = os.getenv("IQ_PASSWORD")
 IQ_USE_FX = os.getenv("IQ_USE_FX", "1")  # "1" para usar fx-iqoption se disponível
+BRIDGE_URL = os.getenv("BRIDGE_URL")
 
 # Locks e singletons
 _iq_lock = asyncio.Lock()
