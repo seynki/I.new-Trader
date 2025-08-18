@@ -22,8 +22,10 @@ services:
       - MONGO_URL=mongodb://mongo:27017
       - DB_NAME=typeia_trading
       - IQ_USE_FX=0
+      - BRIDGE_URL=http://bridge:8100
     depends_on:
       - mongo
+      - bridge
     ports:
       - "8001:8001"
 
@@ -40,5 +42,16 @@ services:
     depends_on:
       - backend
 
+  bridge:
+    build:
+      context: ./bridge
+    container_name: typeia-bridge
+    restart: unless-stopped
+    volumes:
+      - bridge_session:/data
+    ports:
+      - "8100:8100"
+
 volumes:
   mongo_data:
+  bridge_session:
