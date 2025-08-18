@@ -26,11 +26,14 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="TypeIA-Trading", version="2.0.0")
 
-# CORS
+# CORS (ajustado para compatibilidade com credenciais)
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
+_allowed_origins = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()] if CORS_ORIGINS else ["*"]
+_allow_credentials = False if _allowed_origins == ["*"] else True
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_allowed_origins,
+    allow_credentials=_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
