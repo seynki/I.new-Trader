@@ -1191,11 +1191,17 @@ async def advanced_signal_monitoring_task():
                 signal = signal_generator.generate_advanced_signal(symbol, price_history, market_regime)
                 
                 if signal:
-                    # Salvar no banco
-                    await db.signals.insert_one(signal.dict())
+                    # Salvar no banco (tolerante a falhas)
+                    try:
+                        await db.signals.insert_one(signal.dict())
+                    except Exception as e:
+                        logger.error(f"Erro ao salvar sinal no banco (tolerado): {e}")
                     
                     # Processar notificações
-                    await notification_manager.process_signal_notification(signal)
+                    try:
+                        await notification_manager.process_signal_notification(signal)
+                    except Exception as e:
+                        logger.error(f"Erro processando notificações (tolerado): {e}")
                     
                     # Enviar para clientes conectados via WebSocket
                     message = {
