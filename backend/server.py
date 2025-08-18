@@ -1690,6 +1690,9 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
         # Normalizar ativo para IQ Option
         normalized = _normalize_asset_for_iq(order.asset)
 
+        # Normalizar ativo para IQ Option
+        normalized = _normalize_asset_for_iq(order.asset)
+
         # Garantir conexão (prefere fx) com timeout total
         try:
             kind, client_obj = await asyncio.wait_for(
@@ -1697,11 +1700,63 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
                 timeout=45.0
             )
             logger.info(f"Conectado via {kind}")
-        except asyncio.TimeoutError:
-            raise HTTPException(
-                status_code=504, 
-                detail="Timeout na conexão com IQ Option. Tente novamente em alguns instantes."
-            )
+        except Exception as e:
+            logger.warning(f"Falha ao conectar na API da IQ Option: {e}")
+            # Fallback direto para Bridge se configurado
+            if BRIDGE_URL:
+                try:
+                    import httpx
+                    payload = {
+                        "asset": normalized,
+                        "direction": order.direction,
+                        "amount": float(order.amount),
+                        "expiration": int(order.expiration),
+                        "account_type": order.account_type,
+                        "option_type": order.option_type,
+                    }
+                    async with httpx.AsyncClient(timeout=20.0) as client:
+                        r = await client.post(f"{BRIDGE_URL}/bridge/quick-order", json=payload)
+                        if r.status_code == 200:
+                            data = r.json()
+                            logger.info(f"Bridge executou ordem (sem API): {data}")
+                            alert = {
+                                "id": str(uuid.uuid4()),
+                                "signal_id": str(uuid.uuid4()),
+                                "alert_type": "order_execution",
+                                "title": f"✅ Ordem via Bridge - {normalized}",
+                                "message": f"{order.direction.upper()} • ${order.amount} • exp {order.expiration}m • via bridge",
+                                "priority": "high",
+                                "timestamp": datetime.now(),
+                                "signal_type": "buy" if order.direction == "call" else "sell",
+                                "symbol": normalized,
+                                "iq_option_ready": True,
+                                "read": False,
+                            }
+                            try:
+                                await db.alerts.insert_one({**alert, "timestamp": alert["timestamp"]})
+                            except Exception:
+                                pass
+                            await broadcast_message(json.dumps({"type": "trading_alert", "data": alert}, default=str))
+                            return QuickOrderResponse(
+                                success=True,
+                                message="Ordem enviada via Bridge",
+                                order_id=None,
+                                echo={
+                                    "asset": normalized,
+                                    "direction": order.direction,
+                                    "amount": order.amount,
+                                    "expiration": order.expiration,
+                                    "account_type": order.account_type,
+                                    "option_type": order.option_type,
+                                    "provider": "bridge"
+                                }
+                            )
+                except Exception as be:
+                    logger.warning(f"Falha no Bridge fallback (conexão): {be}")
+            # Se não houver Bridge ou falhou, propaga o erro padrão
+            if isinstance(e, asyncio.TimeoutError):
+                raise HTTPException(status_code=504, detail="Timeout na conexão com IQ Option. Tente novamente em alguns instantes.")
+            raise HTTPException(status_code=503, detail="Serviço IQ Option temporariamente indisponível. Verifique sua conexão e credenciais.")
         
         # Trocar conta conforme seleção
         await _switch_balance(kind, client_obj, order.account_type)
