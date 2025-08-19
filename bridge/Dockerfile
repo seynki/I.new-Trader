@@ -10,4 +10,4 @@ COPY . /app
 
 ENV PORT=8100
 EXPOSE 8100
-CMD ["python", "main.py"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8100"]
