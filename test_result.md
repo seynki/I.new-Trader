@@ -192,6 +192,19 @@ backend:
         agent: "testing"
         comment: "✅ PASSED - Review Request Specific Testing: POST /api/trading/quick-order endpoint tested comprehensively. (1) ASSET NORMALIZATION: Code analysis confirms _normalize_asset_for_iq() function correctly implements EURUSD→EURUSD (weekdays) or EURUSD-OTC (weekends), BTCUSDT→BTCUSD as specified. Today is Sunday, so EURUSD would normalize to EURUSD-OTC. (2) VALIDATION: All input validations working correctly - amount≤0→400, expiration=0→400, invalid direction 'buy'→400, invalid option_type 'turbo'→400, all with Portuguese error messages. (3) HTTP RESPONSES: Backend returns 503 'Serviço IQ Option temporariamente indisponível' in preview environment (expected due to network restrictions), would return 200 with order_id and echo.provider='fx-iqoption'/'iqoptionapi' in production. (4) ALERT CREATION: Alert system functional, though order_execution alerts not generated due to connection failure. (5) WEBSOCKET: WebSocket /api/ws connects successfully, would emit type='trading_alert' with alert_type='order_execution' on successful orders. System architecture correct and ready for production deployment."
 
+  - task: "Bridge-only Mode (Skip IQ APIs)"
+    implemented: true
+    working: "NA"
+    file: "server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Adicionado suporte a USE_BRIDGE_ONLY=1. Quando ativo e com BRIDGE_URL definido, o endpoint POST /api/trading/quick-order ignora totalmente fx-iqoption/iqoptionapi e envia a ordem somente via Bridge (/bridge/quick-order), com tentativa de login automático (401 -> /bridge/login). Em sucesso, retorna provider='bridge' e publica alerta de execução."
+
+
   - task: "POST /api/trading/quick-order Asset Normalization Testing"
     implemented: true
     working: true
