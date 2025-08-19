@@ -4,28 +4,29 @@ Requisitos:
 - Docker + Docker Compose
 
 Passos:
-1) Crie um arquivo .env no backend com:
+1) Crie/edite backend/.env:
    MONGO_URL=mongodb://mongo:27017
    DB_NAME=typeia_trading
    IQ_EMAIL="seu_email@iqoption"
    IQ_PASSWORD="sua_senha"
-   # Opcional para forçar fallback iqoptionapi:
-   # IQ_USE_FX=0
+   IQ_USE_FX=0
+   BRIDGE_URL=http://bridge:8100
 
 2) Suba os serviços:
+   docker compose down -v
    docker compose up --build
 
-3) Acesse:
-   Frontend: http://localhost:3000
-   Backend:  http://localhost:8001/api/health
+3) Bridge (testes):
+   - GET http://localhost:8100/bridge/health
+   - GET http://localhost:8100/bridge/status
+   - GET http://localhost:8100/bridge/screenshot
+   - POST http://localhost:8100/bridge/login {email,password,otp_code?}
+   - POST http://localhost:8100/bridge/quick-order {asset,direction,amount,expiration,account_type,option_type}
 
-4) Testes úteis:
-   - POST http://localhost:8001/api/iq-option/live-login-check
-   - POST http://localhost:8001/api/iq-option/test-connection (simulado)
-   - POST http://localhost:8001/api/trading/quick-order (com body JSON)
+4) UI:
+   http://localhost:3000 (WS deve conectar a ws://localhost:8001/api/ws)
 
-Observações:
-- O backend usa apenas as variáveis de ambiente e conecta no Mongo do compose (service mongo).
-- Se quiser usar apenas iqoptionapi, defina IQ_USE_FX=0 no backend/.env e reinicie.
-- Se sua conta tiver 2FA/captcha, desative temporariamente para o teste.
-- Forex em fins de semana vira -OTC (ex: EURUSD -> EURUSD-OTC); cripto BTCUSDT -> BTCUSD.
+Notas:
+- /bridge/login aceita apenas POST JSON.
+- Se a ordem via API falhar, o backend cai no Bridge automaticamente.
+- Se a IQ exigir 2FA, forneça otp_code no /bridge/login.
