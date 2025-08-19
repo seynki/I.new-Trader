@@ -213,6 +213,9 @@ async def bridge_quick_order(body: OrderBody):
             step = "goto_traderoom"
             await page.goto(TRADEROOM_URL, timeout=35000, wait_until="domcontentloaded")
             await asyncio.sleep(1.2)
+            # Se fomos redirecionados para login, retornar 401 para o backend tentar /bridge/login
+            if "login" in page.url:
+                raise HTTPException(status_code=401, detail={"error": "not_logged", "step": step, "url": page.url})
 
             # Aceitar cookies/popups (best-effort)
             step = "accept_cookies"
