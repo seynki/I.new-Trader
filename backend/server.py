@@ -1828,6 +1828,16 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
                             }
                             async with httpx.AsyncClient(timeout=20.0) as client:
                                 r = await client.post(f"{BRIDGE_URL}/bridge/quick-order", json=payload)
+                                if r.status_code == 401:
+                                    # Não logado: tentar login automático com credenciais do backend
+                                    creds = {"email": IQ_EMAIL, "password": IQ_PASSWORD}
+                                    try:
+                                        lr = await client.post(f"{BRIDGE_URL}/bridge/login", json=creds)
+                                        logger.info(f"Bridge login response: {lr.status_code}")
+                                    except Exception as le:
+                                        logger.warning(f"Falha login automático no Bridge: {le}")
+                                    # tentar de novo a ordem
+                                    r = await client.post(f"{BRIDGE_URL}/bridge/quick-order", json=payload)
                                 if r.status_code == 200:
                                     data = r.json()
                                     logger.info(f"Bridge executou ordem: {data}")
