@@ -61,7 +61,8 @@ async def health():
     return {"status": "ok", "ts": time.time()}
 
 @app.get("/bridge/status")
-async def status():n    await bridge.ensure()
+async def status():
+    await bridge.ensure()
     page = bridge.page
     return {"url": page.url, "headless": HEADLESS}
 
