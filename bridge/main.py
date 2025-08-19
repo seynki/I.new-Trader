@@ -92,12 +92,23 @@ async def bridge_login(body: LoginBody):
 
             await page.goto(LOGIN_URL, timeout=30000, wait_until="domcontentloaded")
 
+            # Fechar banners/consentimentos (PT/EN)
+            for txt in ["Entendi", "Aceitar", "Concordo", "OK", "Accept", "I agree"]:
+                loc = page.get_by_text(txt, exact=False)
+                if await loc.count() > 0:
+                    try:
+                        await loc.first.click(timeout=1500)
+                        await asyncio.sleep(0.3)
+                    except Exception:
+                        pass
+
             # Possíveis campos (pt/en)
             candidates_email = [
-                "input[name=login]", "input[type=email]", "#email", "input[name=email]"
+                "input[name=login]", "input[type=email]", "#email", "input[name=email]",
+                "input[placeholder*='e-mail']", "input[placeholder*='e-mail']", "input[placeholder*='telefone']"
             ]
             candidates_pass = [
-                "input[name=password]", "input[type=password]", "#password"
+                "input[name=password]", "input[type=password]", "#password", "input[placeholder*='Senha']"
             ]
 
             found = False
