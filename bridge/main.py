@@ -33,7 +33,8 @@ class Bridge:
         self.lock = asyncio.Lock()
         self.play = None
 
-    async def ensure(self):n        if self.browser and self.context and self.page:
+    async def ensure(self):
+        if self.browser and self.context and self.page:
             return
         self.play = await async_playwright().start()
         self.context = await self.play.chromium.launch_persistent_context(
