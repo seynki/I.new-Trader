@@ -1669,7 +1669,7 @@ class QuickOrderResponse(BaseModel):
 
 @app.post("/api/trading/quick-order")
 async def quick_order(order: QuickOrderRequest):  # noqa: F811
-    """Executa ordem real via IQ Option (fx-iqoption com fallback iqoptionapi)."""
+    """Executa ordem real via IQ Option (fx-iqoption com fallback iqoptionapi ou Bridge-only)."""
     try:
         # validação simples (mantida)
         if order.direction not in ("call", "put"):
@@ -1691,7 +1691,78 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
         # Normalizar ativo para IQ Option
         normalized = _normalize_asset_for_iq(order.asset)
 
-        # Normalizar ativo para IQ Option
+        # Se estiver em modo Bridge-Only, pular totalmente as libs de API
+        if USE_BRIDGE_ONLY == "1":
+            if not BRIDGE_URL:
+                raise HTTPException(status_code=503, detail="Bridge não configurado (defina BRIDGE_URL)")
+            try:
+                import httpx
+                payload = {
+                    "asset": normalized,
+                    "direction": order.direction,
+                    "amount": float(order.amount),
+                    "expiration": int(order.expiration),
+                    "account_type": order.account_type,
+                    "option_type": order.option_type,
+                }
+                async with httpx.AsyncClient(timeout=25.0) as client:
+                    r = await client.post(f"{BRIDGE_URL}/bridge/quick-order", json=payload)
+                    if r.status_code == 401:
+                        # Não logado: tentar login automático e reenviar
+                        creds = {"email": IQ_EMAIL, "password": IQ_PASSWORD}
+                        try:
+                            await client.post(f"{BRIDGE_URL}/bridge/login", json=creds)
+                        except Exception as le:
+                            logger.warning(f"Falha no login automático do Bridge: {le}")
+                        r = await client.post(f"{BRIDGE_URL}/bridge/quick-order", json=payload)
+                    if r.status_code == 200:
+                        data = r.json()
+                        logger.info(f"[Bridge-only] Ordem enviada com sucesso: {data}")
+                        alert = {
+                            "id": str(uuid.uuid4()),
+                            "signal_id": str(uuid.uuid4()),
+                            "alert_type": "order_execution",
+                            "title": f"✅ Ordem via Bridge - {normalized}",
+                            "message": f"{order.direction.upper()} • ${order.amount} • exp {order.expiration}m • via bridge",
+                            "priority": "high",
+                            "timestamp": datetime.now(),
+                            "signal_type": "buy" if order.direction == "call" else "sell",
+                            "symbol": normalized,
+                            "iq_option_ready": True,
+                            "read": False,
+                        }
+                        try:
+                            await db.alerts.insert_one({**alert, "timestamp": alert["timestamp"]})
+                        except Exception:
+                            pass
+                        await broadcast_message(json.dumps({"type": "trading_alert", "data": alert}, default=str))
+                        return QuickOrderResponse(
+                            success=True,
+                            message="Ordem enviada via Bridge",
+                            order_id=None,
+                            echo={
+                                "asset": normalized,
+                                "direction": order.direction,
+                                "amount": order.amount,
+                                "expiration": order.expiration,
+                                "account_type": order.account_type,
+                                "option_type": order.option_type,
+                                "provider": "bridge"
+                            }
+                        )
+                    # Qualquer outro status: propagar detalhe quando possível
+                    try:
+                        detail = r.json()
+                    except Exception:
+                        detail = r.text
+                    raise HTTPException(status_code=503, detail={"bridge_status": r.status_code, "detail": detail})
+            except HTTPException:
+                raise
+            except Exception as be:
+                logger.warning(f"Falha no modo Bridge-only: {be}")
+                raise HTTPException(status_code=503, detail=f"Falha ao usar Bridge: {be}")
+
+        # Normalizar ativo para IQ Option (redundância segura)
         normalized = _normalize_asset_for_iq(order.asset)
 
         # Garantir conexão (prefere fx) com timeout total
