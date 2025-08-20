@@ -334,6 +334,10 @@ def from_deriv_code_to_iq_asset(asset: str) -> str:
     # Sintéticos Deriv não possuem equivalente IQ
     return a
 
+def _is_buy_only_deriv(code: str) -> bool:
+    code = (code or '').upper()
+    return code in {"BOOM300N", "BOOM500N", "CRASH300N", "CRASH500N"}
+
 
 async def _place_order(client_kind: str, client_obj, asset: str, direction: str, amount: float, expiration: int, option_type: str):
     loop = asyncio.get_event_loop()
