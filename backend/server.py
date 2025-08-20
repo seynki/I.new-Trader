@@ -1354,8 +1354,11 @@ async def get_market_data():
         else:  # index
             volume = random.uniform(5000000, 50000000)
             
+        # Padronizar símbolo para Deriv (frx/cry) na resposta
+        deriv_code = to_deriv_code(symbol)
+        
         data.append({
-            "symbol": symbol,
+            "symbol": deriv_code,
             "price": current_price,
             "change_24h": round(change_24h, 2),
             "volume": volume,
