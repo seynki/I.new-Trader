@@ -369,38 +369,38 @@ function App() {
     }
   };
 
-  // Deriv-friendly symbol formatting (mantém estilo BASE/QUOTE quando possível)
+  // Deriv-first symbol formatting: mostra frx*/cry* como BASE/QUOTE; mantém códigos Deriv no atributo bruto
   const formatIQOptionSymbol = (symbol) => {
     if (!symbol) return '—';
+    const s = String(symbol);
 
-    // Forex like EURUSD, USDJPY
-    if (isForexPair(symbol)) {
-      const base = symbol.slice(0, 3);
-      const quote = symbol.slice(3);
-      const suffix = isWeekend() ? ' (OTC)' : '';
-      return `${base}/${quote}${suffix}`;
+    // If already Deriv code, convert for display only
+    if (/^(frx|cry)/i.test(s)) {
+      const upper = s.toUpperCase();
+      if (upper.startsWith('FRX')) {
+        const pair = upper.slice(3); // EURUSD
+        if (/^[A-Z]{6}$/.test(pair)) return `${pair.slice(0,3)}/${pair.slice(3)}`;
+        return pair;
+      }
+      if (upper.startsWith('CRY')) {
+        const rest = upper.slice(3); // BTCUSD or BNBUSD
+        if (rest.endsWith('USD')) return `${rest.replace('USD','')}/USD`;
+        return rest;
+      }
+      return s;
     }
 
-    // Crypto like BTCUSDT, ETHUSDT
-    if (symbol.endsWith('USDT')) {
-      const base = symbol.replace('USDT', '');
-      return `${base}/USD`;
+    // Legacy formats (EURUSD, BTCUSDT)
+    if (isForexPair(s)) {
+      return `${s.slice(0,3)}/${s.slice(3)}`;
     }
-
-    // Symbols ending with USD but not 6 letters (rare here)
-    if (/USD$/.test(symbol) && !isForexPair(symbol)) {
-      const base = symbol.replace('USD', '');
-      const suffix = isWeekend() ? ' (OTC)' : '';
-      return `${base}/USD${suffix}`;
+    if (s.endsWith('USDT')) {
+      return `${s.replace('USDT','')}/USD`;
     }
-
-    // Indices like US30
-    if (/^[A-Z]{2}\d{2}$/.test(symbol)) {
-      const suffix = isWeekend() ? ' (OTC)' : '';
-      return `${symbol}${suffix}`;
+    if (/USD$/.test(s) && !isForexPair(s)) {
+      return `${s.replace('USD','')}/USD`;
     }
-
-    return symbol;
+    return s;
   };
 
   // Abbreviation for small icon box
