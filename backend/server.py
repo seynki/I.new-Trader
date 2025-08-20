@@ -60,7 +60,7 @@ BRIDGE_URL = os.getenv("BRIDGE_URL")
 USE_BRIDGE_ONLY = os.getenv("USE_BRIDGE_ONLY", "0")
 
 # Feature flag Deriv
-USE_DERIV = os.getenv("USE_DERIV", "0")
+USE_DERIV = os.getenv("USE_DERIV", "1")  # default ON per user request
 DERIV_APP_ID = os.getenv("DERIV_APP_ID")
 DERIV_API_TOKEN = os.getenv("DERIV_API_TOKEN")
 DERIV_USE_DEMO = os.getenv("DERIV_USE_DEMO", "1")
