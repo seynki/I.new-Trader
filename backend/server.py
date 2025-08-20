@@ -1251,6 +1251,19 @@ async def broadcast_message(message: str):
 
 # Endpoints REST API
 
+# --- Deriv Diagnostics (não intrusivo) ---
+@app.get("/api/deriv/diagnostics")
+async def deriv_diagnostics_endpoint():
+    if deriv_diag_fn is None:
+        return {"status": "unavailable", "summary": "módulo deriv_integration não disponível"}
+    try:
+        return await deriv_diag_fn()
+    except Exception as e:
+        logger.error(f"Deriv diagnostics error: {e}")
+        return {"status": "error", "summary": str(e)}
+
+
+
 @app.get("/api/health")
 async def health_check():
     return {
