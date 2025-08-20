@@ -1893,7 +1893,7 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
                             "id": str(uuid.uuid4()),
                             "signal_id": str(uuid.uuid4()),
                             "alert_type": "order_execution",
-                            "title": f"✅ Ordem via Bridge - {normalized}",
+                            "title": f"✅ Ordem via Bridge - {to_deriv_code(normalized)}",
                             "message": f"{order.direction.upper()} • ${order.amount} • exp {order.expiration}m • via bridge",
                             "priority": "high",
                             "timestamp": datetime.now(),
