@@ -64,8 +64,8 @@ function App() {
     since_minutes: 60,
     max_per_symbol: 5,
   });
-  const [iqOptionStatus, setIqOptionStatus] = useState(null);
-  const [lastIqUpdate, setLastIqUpdate] = useState(null);
+  const [derivStatus, setDerivStatus] = useState(null);
+  const [lastDerivUpdate, setLastDerivUpdate] = useState(null);
   const [stats, setStats] = useState({ scoreAvg: 0, maxScore: 0, rrAvg: 0, trending: 0 });
   const [allSymbols, setAllSymbols] = useState([]);
   const [selectedSymbols, setSelectedSymbols] = useState([]);
