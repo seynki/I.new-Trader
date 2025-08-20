@@ -18,6 +18,14 @@ from dotenv import load_dotenv
 import threading
 from plyer import notification
 
+# Deriv lightweight integration (opcional)
+try:
+    from deriv_integration import deriv_diagnostics as deriv_diag_fn, deriv_quick_order as deriv_quick_order_fn, map_asset_to_deriv_symbol
+except Exception:
+    deriv_diag_fn = None
+    deriv_quick_order_fn = None
+    map_asset_to_deriv_symbol = None
+
 load_dotenv()
 
 # Configuração de logging
