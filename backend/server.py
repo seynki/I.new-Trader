@@ -1766,19 +1766,21 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
             raise HTTPException(status_code=400, detail="option_type deve ser 'binary' ou 'digital'")
         if order.amount <= 0:
             raise HTTPException(status_code=400, detail="amount deve ser > 0")
-        # Validação de expiration: minutos (1..60) ou, se Deriv + sintético, ticks (1..10)
-        if USE_DERIV == "1" and map_asset_to_deriv_symbol is not None:
+        # Validação de expiration e regras Deriv (buy-only, sintéticos), mesmo quando Deriv não está configurado
+        d_sym = None
+        if map_asset_to_deriv_symbol is not None:
             try:
                 d_sym = map_asset_to_deriv_symbol(order.asset)
             except Exception:
                 d_sym = None
-            is_synth = bool(d_sym) and (d_sym.startswith("R_") or "BOOM" in d_sym or "CRASH" in d_sym)
-            if is_synth:
-                if not (1 <= order.expiration <= 10):
-                    raise HTTPException(status_code=400, detail="expiration deve estar entre 1 e 10 ticks para mercados sintéticos (Deriv)")
-            else:
-                if not (1 <= order.expiration <= 60):
-                    raise HTTPException(status_code=400, detail="expiration deve estar entre 1 e 60 minutos")
+        is_synth = bool(d_sym) and (d_sym.startswith("R_") or "BOOM" in d_sym or "CRASH" in d_sym)
+        # Buy-only para BOOM/CRASH
+        if bool(d_sym) and ("BOOM" in d_sym or "CRASH" in d_sym) and order.direction != "call":
+            raise HTTPException(status_code=400, detail="Este mercado aceita apenas compra (CALL).")
+        # Regras de expiration
+        if is_synth:
+            if not (1 <= order.expiration <= 10):
+                raise HTTPException(status_code=400, detail="expiration deve estar entre 1 e 10 ticks para mercados sintéticos (Deriv)")
         else:
             if not (1 <= order.expiration <= 60):
                 raise HTTPException(status_code=400, detail="expiration deve estar entre 1 e 60 minutos")
