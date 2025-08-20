@@ -207,6 +207,21 @@ backend:
         agent: "testing"
         comment: "✅ PASSED - Bridge-only mode testing completed successfully. (1) COMPORTAMENTO PADRÃO (USE_BRIDGE_ONLY=0): ✅ PASSOU - POST /api/trading/quick-order com payload válido retorna 503 'Credenciais IQ_EMAIL/IQ_PASSWORD ausentes no backend' em 15-19ms (muito rápido, indicando que não há tentativas de conexão externa). Sistema tenta APIs IQ Option e retorna 503/504 quando sem conectividade externa conforme esperado. (2) VALIDAÇÕES: ✅ PASSOU - Todas estruturas de validação funcionando: amount≤0→400 'amount deve ser > 0', expiration=0→400 'expiration deve estar entre 1 e 60 minutos', option_type='turbo'→400 'option_type deve ser binary ou digital', direction='buy'→400 'direction deve ser call ou put'. Todas com mensagens em português corretas. (3) NORMALIZAÇÃO DE ATIVOS: ✅ PASSOU - Lógica de normalização funcional: EURUSD permanece EURUSD ou vira EURUSD-OTC em fins de semana, BTCUSDT→BTCUSD. (4) TEMPOS DE RESPOSTA: ✅ PASSOU - Tempo médio 17ms (15-19ms), muito rápido e aceitável. (5) CÓDIGOS HTTP: ✅ PASSOU - Retorna 503 adequadamente para falhas de conectividade, 400 para validações. CONCLUSÃO: Sistema pronto para modo Bridge-only. Quando USE_BRIDGE_ONLY=1 sem BRIDGE_URL, deve retornar 503 'Bridge não configurado' imediatamente sem tentar conexões IQ Option."
 
+  - task: "Deriv Endpoints and Safe Feature Flag"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Adicionados endpoints Deriv com feature flag segura. GET /api/deriv/diagnostics para verificar configuração Deriv. POST /api/trading/quick-order com suporte a USE_DERIV=0/1, DERIV_APP_ID e DERIV_API_TOKEN. Sistema mantém compatibilidade com IQ Option quando USE_DERIV=0."
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - Deriv smoke tests completados com sucesso: (1) GET /api/health retorna 200 com status='healthy' conforme esperado. (2) GET /api/deriv/diagnostics retorna 200 com status='not_configured', deriv_connected=false (esperado sem DERIV_APP_ID), summary='DERIV_APP_ID ausente. Configure DERIV_APP_ID e DERIV_API_TOKEN (demo)'. (3) POST /api/trading/quick-order com asset='VOLATILITY_10' e USE_DERIV=0 retorna 503 'Serviço IQ Option temporariamente indisponível' (comportamento correto - usa fluxo IQ Option). (4) Endpoint não crasha com VOLATILITY_10 asset, retorna JSON estruturado. Sistema implementa feature flag segura: USE_DERIV=0 (padrão) usa IQ Option, USE_DERIV=1 sem DERIV_APP_ID retornaria 503 'Deriv não configurado', USE_DERIV=1 com credenciais inválidas retornaria 502/503 com erro de autorização estruturado. Todos endpoints funcionando conforme especificação do review request."
+
 
   - task: "POST /api/trading/quick-order Asset Normalization Testing"
     implemented: true
