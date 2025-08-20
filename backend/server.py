@@ -2226,7 +2226,7 @@ async def list_symbols():
         volume = hist[-1]["volume"] if hist else random.uniform(1e5, 1e6)
         liquidity = "high" if volume > 2e6 else "medium" if volume > 5e5 else "low"
         items.append({
-            "symbol": sym,
+            "symbol": to_deriv_code(sym),
             "type": cfg.get("type", "unknown"),
             "liquidity": liquidity,
             "volume": volume,
