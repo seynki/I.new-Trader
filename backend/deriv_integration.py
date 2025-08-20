@@ -84,8 +84,13 @@ async def deriv_diagnostics() -> Dict[str, Any]:
 
 
 def map_asset_to_deriv_symbol(asset: str) -> Optional[str]:
-    """Map app asset (e.g., EURUSD, BTCUSDT, VOLATILITY_10) to Deriv symbol."""
+    """Map app asset (e.g., EURUSD, BTCUSDT, VOLATILITY_10) to Deriv symbol.
+    If input already looks like a Deriv code (frx..., cry..., R_..., BOOM/CRASH...N), return as-is.
+    """
     asset = (asset or "").upper()
+    # Already a Deriv code
+    if asset.startswith(("FRX", "CRY")) or asset.startswith("R_") or asset.startswith("BOOM") or asset.startswith("CRASH"):
+        return asset
     mapping = {
         # Forex
         "EURUSD": "frxEURUSD",
