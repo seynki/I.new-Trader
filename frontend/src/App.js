@@ -406,10 +406,13 @@ function App() {
   // Abbreviation for small icon box
   const getSymbolShort = (symbol) => {
     if (!symbol) return '—';
-    if (isForexPair(symbol)) return symbol.slice(0, 3);
-    if (symbol.endsWith('USDT')) return symbol.replace('USDT', '').substring(0, 3);
-    if (symbol.endsWith('USD')) return symbol.replace('USD', '').substring(0, 3);
-    return symbol.substring(0, 3);
+    const s = String(symbol).toUpperCase();
+    if (s.startsWith('FRX')) return s.slice(3,6);
+    if (s.startsWith('CRY')) return s.slice(3,6);
+    if (isForexPair(s)) return s.slice(0,3);
+    if (s.endsWith('USDT')) return s.replace('USDT','').substring(0,3);
+    if (s.endsWith('USD')) return s.replace('USD','').substring(0,3);
+    return s.substring(0,3);
   };
 
   const formatChange = (change) => {
