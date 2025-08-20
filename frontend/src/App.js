@@ -279,21 +279,14 @@ function App() {
     }
   };
 
-  const testIQOptionConnection = async () => {
+  const testDerivDiagnostics = async () => {
     try {
-      // Tenta login real; se falhar, cai para teste simulado
-      let response;
-      try {
-        response = await axios.post(`${BACKEND_URL}/api/iq-option/live-login-check`);
-      } catch (e) {
-        // fallback para teste simulado quando em preview ou bloqueado
-        response = await axios.post(`${BACKEND_URL}/api/iq-option/test-connection`);
-      }
-      setIqOptionStatus(response.data);
-      setLastIqUpdate(new Date());
+      const response = await axios.get(`${BACKEND_URL}/api/deriv/diagnostics`);
+      setDerivStatus(response.data);
+      setLastDerivUpdate(new Date());
     } catch (error) {
-      console.error('Erro ao testar conexão IQ Option:', error);
-      setIqOptionStatus({ status: 'error', message: 'Connection failed' });
+      console.error('Erro ao testar conexão Deriv:', error);
+      setDerivStatus({ status: 'error', message: 'Connection failed' });
     }
   };
 
