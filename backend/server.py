@@ -1718,6 +1718,56 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
         # Normalizar ativo para IQ Option
         normalized = _normalize_asset_for_iq(order.asset)
 
+
+        # Deriv: se ativado, usar Deriv no lugar de IQ/Bridge
+        if USE_DERIV == "1":
+            if deriv_quick_order_fn is None:
+                raise HTTPException(status_code=503, detail="Integração Deriv indisponível")
+            if not DERIV_APP_ID or not DERIV_API_TOKEN:
+                raise HTTPException(status_code=503, detail="Deriv não configurado (defina DERIV_APP_ID e DERIV_API_TOKEN)")
+            try:
+                result = await deriv_quick_order_fn(order.asset, order.direction, order.amount, order.expiration)
+                if not result.get("success"):
+                    raise HTTPException(status_code=502, detail=result.get("error", "Falha desconhecida Deriv"))
+                # Alerta
+                alert = {
+                    "id": str(uuid.uuid4()),
+                    "signal_id": str(uuid.uuid4()),
+                    "alert_type": "order_execution",
+                    "title": f"✅ Ordem via Deriv - {order.asset}",
+                    "message": f"{order.direction.upper()} • ${order.amount} • exp {order.expiration}m • via deriv",
+                    "priority": "high",
+                    "timestamp": datetime.now(),
+                    "signal_type": "buy" if order.direction == "call" else "sell",
+                    "symbol": order.asset,
+                    "iq_option_ready": False,
+                    "read": False,
+                }
+                try:
+                    await db.alerts.insert_one({**alert, "timestamp": alert["timestamp"]})
+                except Exception:
+                    pass
+                await broadcast_message(json.dumps({"type": "trading_alert", "data": alert}, default=str))
+                return QuickOrderResponse(
+                    success=True,
+                    message="Ordem enviada via Deriv",
+                    order_id=str(result.get("contract_id")),
+                    echo={
+                        "asset": order.asset,
+                        "direction": order.direction,
+                        "amount": order.amount,
+                        "expiration": order.expiration,
+                        "account_type": order.account_type,
+                        "option_type": order.option_type,
+                        "provider": "deriv",
+                    }
+                )
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Erro Deriv quick-order: {e}")
+                raise HTTPException(status_code=500, detail=f"Erro interno Deriv: {e}")
+
         # Se estiver em modo Bridge-Only, pular totalmente as libs de API
         if USE_BRIDGE_ONLY == "1":
             if not BRIDGE_URL:
