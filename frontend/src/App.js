@@ -582,7 +582,7 @@ function App() {
                   className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1 text-sm text-green-400 focus:ring-2 focus:ring-green-500 focus:border-transparent min-w-[140px]"
                 >
                   {allSymbols.map(s => (
-                    <option key={s.symbol} value={s.symbol}>{s.symbol}</option>
+                    <option key={s.symbol} value={s.symbol}>{formatIQOptionSymbol(s.symbol)}</option>
                   ))}
                 </select>
 
