@@ -280,6 +280,61 @@ def _normalize_asset_for_iq(asset: str) -> str:
     except Exception:
         return asset
 
+# Helpers para nomenclatura Deriv
+try:
+    from deriv_integration import map_asset_to_deriv_symbol as _map_to_deriv
+except Exception:
+    _map_to_deriv = None
+
+def to_deriv_code(asset: str) -> str:
+    """Converte nomes IQ/gerais (EURUSD, BTCUSDT, BNBUSD) para código Deriv (frxEURUSD, cryBTCUSD, cryBNBUSD).
+    Se já estiver em formato Deriv (frx..., cry..., R_..., BOOM...N, CRASH...N), retorna como está.
+    """
+    a = (asset or '').upper().strip()
+    if not a:
+        return a
+    # Já Deriv
+    if a.startswith(('FRX', 'CRY')) or a.startswith('R_') or a.startswith('BOOM') or a.startswith('CRASH'):
+        return a
+    # Tabela explícita
+    if _map_to_deriv:
+        try:
+            m = _map_to_deriv(a)
+            if m:
+                return m
+        except Exception:
+            pass
+    # Forex 6 letras
+    if len(a) == 6 and a.isalpha():
+        return f"frx{a}"
+    # Crypto USDT/ USD
+    if a.endswith('USDT'):
+        base = a[:-1]  # remove T -> BTCUSD
+        return f"cry{base}"
+    if a.endswith('USD'):
+        base = a  # já termina com USD
+        return f"cry{base}"
+    return a
+
+def from_deriv_code_to_iq_asset(asset: str) -> str:
+    """Converte código Deriv para o formato esperado pela IQ/Bridge (EURUSD, BTCUSD, etc.).
+    - frxEURUSD -> EURUSD
+    - cryBNBUSD -> BNBUSD
+    - R_10/BOOM500N/CRASH500N retornam como estão (não suportados pela IQ)
+    """
+    a = (asset or '').upper().strip()
+    if not a:
+        return a
+    if a.startswith('FRX'):
+        return a[3:]
+    if a.startswith('CRY'):
+        # cry<BASE>USD -> <BASE>USD
+        rest = a[3:]
+        return rest
+    # Sintéticos Deriv não possuem equivalente IQ
+    return a
+
+
 async def _place_order(client_kind: str, client_obj, asset: str, direction: str, amount: float, expiration: int, option_type: str):
     loop = asyncio.get_event_loop()
     if client_kind == "fx":
