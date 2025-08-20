@@ -1539,7 +1539,7 @@ async def mark_alert_read(alert_id: str):
         logger.error(f"Error marking alert as read: {e}")
         raise HTTPException(status_code=500, detail="Error updating alert")
 
-@app.post("/api/iq-option/test-connection")
+# [REMOVIDO] IQ Option endpoints substituídos por Deriv
 async def test_iq_option_connection():
     """Retorna status e saldo simulado em tempo real (sem login real)"""
     credentials = notification_manager.iq_option_credentials
