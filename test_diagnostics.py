@@ -11,7 +11,7 @@ def main():
     print("=" * 60)
     
     # Get the backend URL from frontend .env
-    backend_url = "https://direct-connect.preview.emergentagent.com"
+    backend_url = "https://iqtoderivmigration.preview.emergentagent.com"
     
     tester = AITradingSystemTester(base_url=backend_url)
     

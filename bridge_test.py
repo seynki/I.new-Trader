@@ -10,7 +10,7 @@ import time
 import sys
 
 class BridgeOnlyTester:
-    def __init__(self, base_url="https://direct-connect.preview.emergentagent.com"):
+    def __init__(self, base_url="https://iqtoderivmigration.preview.emergentagent.com"):
         self.base_url = base_url
         self.tests_run = 0
         self.tests_passed = 0

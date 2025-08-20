@@ -44,7 +44,7 @@ def test_normalization_logic():
 
 def test_backend_endpoints():
     """Test backend endpoints to verify they're working"""
-    base_url = "https://direct-connect.preview.emergentagent.com"
+    base_url = "https://iqtoderivmigration.preview.emergentagent.com"
     
     print("\n🔍 Testing Backend Endpoints...")
     
