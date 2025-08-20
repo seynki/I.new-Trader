@@ -148,6 +148,7 @@ function App() {
       if (message.type === 'market_update') {
         // Filter out removed assets just in case
         const filtered = (message.data || []).filter(m => m.symbol !== 'SP500' && m.symbol !== 'NAS100');
+        // market_update já vem com códigos Deriv; manter direto
         setMarketData(filtered);
         setLastUpdate(new Date());
       } else if (message.type === 'new_signal') {
