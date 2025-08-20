@@ -724,7 +724,7 @@ function App() {
             <Card className="bg-gray-900/50 border-gray-800/50 backdrop-blur-sm">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg text-green-400">Oportunidades ao vivo</CardTitle>
+                  <CardTitle className="text-lg text-green-400">Oportunidades ao vivo (Deriv)</CardTitle>
                   <div className="flex items-center gap-2">
                     <select
                       value={quickAccountType}
