@@ -369,7 +369,7 @@ function App() {
     }
   };
 
-  // IQ Option style symbol formatting
+  // Deriv-friendly symbol formatting (mantém estilo BASE/QUOTE quando possível)
   const formatIQOptionSymbol = (symbol) => {
     if (!symbol) return '—';
 
