@@ -2255,7 +2255,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     change = 0.0
                     
                 market_data.append({
-                    "symbol": symbol,
+                    "symbol": to_deriv_code(symbol),
                     "price": current_price,
                     "change_24h": round(change, 2),
                     "volume": history[-1]["volume"] if history else 0,
