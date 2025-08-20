@@ -1390,11 +1390,12 @@ async def get_signals(
     """
     query: Dict[str, Any] = {}
 
-    # Símbolos
+    # Símbolos (aceita IQ e Deriv; converte IQ para Deriv para busca)
     if symbol:
+        symbol = to_deriv_code(symbol)
         query["symbol"] = symbol
     elif symbols:
-        symbol_list = [s.strip() for s in symbols.split(",") if s.strip()]
+        symbol_list = [to_deriv_code(s.strip()) for s in symbols.split(",") if s.strip()]
         if symbol_list:
             query["symbol"] = {"$in": symbol_list}
 
