@@ -16,7 +16,7 @@ import threading
 from datetime import datetime
 
 class ReviewRequestTester:
-    def __init__(self, base_url="https://iqtoderivmigration.preview.emergentagent.com"):
+    def __init__(self, base_url="https://broker-migration.preview.emergentagent.com"):
         self.base_url = base_url
         self.tests_run = 0
         self.tests_passed = 0
