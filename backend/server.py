@@ -1985,7 +1985,7 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
                                 message="Ordem enviada via Bridge",
                                 order_id=None,
                                 echo={
-                                    "asset": normalized,
+                                    "asset": to_deriv_code(normalized),
                                     "direction": order.direction,
                                     "amount": order.amount,
                                     "expiration": order.expiration,
