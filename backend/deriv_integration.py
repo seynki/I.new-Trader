@@ -116,10 +116,20 @@ def map_asset_to_deriv_symbol(asset: str) -> Optional[str]:
     return mapping.get(asset)
 
 
+def _is_synthetic_symbol(symbol_code: str) -> bool:
+    return symbol_code.startswith("R_") or symbol_code in {"BOOM300N", "BOOM500N", "CRASH300N", "CRASH500N"}
+
+
+def _buy_only_symbol(symbol_code: str) -> bool:
+    # BOOM/CRASH são geralmente buy-only na plataforma para determinados contratos
+    return symbol_code in {"BOOM300N", "BOOM500N", "CRASH300N", "CRASH500N"}
+
+
 async def deriv_quick_order(asset: str, direction: str, amount: float, expiration_min: int) -> Dict[str, Any]:
     """Execute a minimal quick order flow on Deriv using proposal -> buy.
     Requirements: DERIV_APP_ID and DERIV_API_TOKEN must be set. Runs on demo if DERIV_USE_DEMO=1.
     Returns a dict similar to QuickOrderResponse fields.
+    - Auto: forex/crypto use minutes; synthetics (R_*) use ticks; BOOM/CRASH are buy-only.
     """
     app_id = _get_env_int("DERIV_APP_ID", 0)
     api_token = os.getenv("DERIV_API_TOKEN")
@@ -147,6 +157,18 @@ async def deriv_quick_order(asset: str, direction: str, amount: float, expiratio
     else:
         return {"success": False, "error": f"Direção inválida: {direction}"}
 
+    # Enforce buy-only symbols
+    if _buy_only_symbol(symbol) and contract_type != "CALL":
+        return {"success": False, "error": "Este mercado aceita apenas compra (CALL)."}
+
+    # duration auto mode
+    duration_unit = "m"
+    duration_value = int(expiration_min)
+    if _is_synthetic_symbol(symbol):
+        duration_unit = "t"  # ticks
+        # clamp ticks between 1 and 10 for safety if user passed minutes
+        duration_value = max(1, min(10, int(expiration_min or 5)))
+
     # Build request sequence: authorize -> proposal -> buy
     req_authorize = {"authorize": api_token}
     req_proposal = {
@@ -155,8 +177,8 @@ async def deriv_quick_order(asset: str, direction: str, amount: float, expiratio
         "basis": "stake",
         "contract_type": contract_type,
         "currency": "USD",
-        "duration": int(expiration_min),
-        "duration_unit": "m",
+        "duration": duration_value,
+        "duration_unit": duration_unit,
         "symbol": symbol,
     }
 
@@ -204,7 +226,8 @@ async def deriv_quick_order(asset: str, direction: str, amount: float, expiratio
         "payout": buy_data.get("payout"),
         "asset": asset,
         "direction": direction,
-        "duration_minutes": int(expiration_min),
+        "duration_unit": duration_unit,
+        "duration_value": duration_value,
         "timestamp": datetime.utcnow().isoformat(),
         "provider": "deriv",
         "use_demo": use_demo,
