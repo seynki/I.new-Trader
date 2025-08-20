@@ -1971,7 +1971,7 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
                                 "priority": "high",
                                 "timestamp": datetime.now(),
                                 "signal_type": "buy" if order.direction == "call" else "sell",
-                                "symbol": normalized,
+                                "symbol": to_deriv_code(normalized),
                                 "iq_option_ready": True,
                                 "read": False,
                             }
