@@ -1869,7 +1869,7 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
             try:
                 import httpx
                 payload = {
-                    "asset": normalized,
+                    "asset": to_deriv_code(normalized),
                     "direction": order.direction,
                     "amount": float(order.amount),
                     "expiration": int(order.expiration),
