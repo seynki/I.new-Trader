@@ -231,6 +231,7 @@ function App() {
       
       // Filter out removed indices just in case
       const md = (marketResponse.data.data || []).filter(m => m.symbol !== 'SP500' && m.symbol !== 'NAS100');
+      // Backend já retorna Deriv codes nos sinais
       const sigs = (signalsResponse.data.signals || []).filter(s => s.symbol !== 'SP500' && s.symbol !== 'NAS100');
 
       setMarketData(md);
