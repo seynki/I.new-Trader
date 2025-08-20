@@ -1419,6 +1419,13 @@ async def get_signals(
     cursor = db.signals.find(query).sort("timestamp", -1).limit(limit)
     docs = await cursor.to_list(length=limit)
 
+    # Padronizar nomes para Deriv na resposta
+    for d in docs:
+        try:
+            d["symbol"] = to_deriv_code(d.get("symbol"))
+        except Exception:
+            pass
+
     # Enforce max_per_symbol se solicitado
     if max_per_symbol and max_per_symbol > 0:
         grouped: Dict[str, List[Dict]] = {}
