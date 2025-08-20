@@ -1710,14 +1710,15 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
         if not (1 <= order.expiration <= 60):
             raise HTTPException(status_code=400, detail="expiration deve estar entre 1 e 60 minutos")
 
-        if not IQ_EMAIL or not IQ_PASSWORD:
-            raise HTTPException(status_code=500, detail="Credenciais IQ_EMAIL/IQ_PASSWORD ausentes no backend")
+        # Se for Deriv, não exigir credenciais da IQ
+        if USE_DERIV != "1":
+            if not IQ_EMAIL or not IQ_PASSWORD:
+                raise HTTPException(status_code=500, detail="Credenciais IQ_EMAIL/IQ_PASSWORD ausentes no backend")
 
         logger.info(f"Iniciando ordem: {order.asset} {order.direction} ${order.amount}")
         
-        # Normalizar ativo para IQ Option
+        # Normalizar ativo para IQ Option (mantido para compat com Bridge/IQ)
         normalized = _normalize_asset_for_iq(order.asset)
-
 
         # Deriv: se ativado, usar Deriv no lugar de IQ/Bridge
         if USE_DERIV == "1":
