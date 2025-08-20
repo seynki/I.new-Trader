@@ -3557,7 +3557,8 @@ def main():
     
     # Run focused tests based on current review request
     tests = [
-        tester.test_deriv_smoke_tests,                        # NEW: Deriv smoke tests (review request)
+        tester.test_deriv_migration_review_request,           # NEW: Current Deriv migration review request
+        tester.test_deriv_smoke_tests,                        # Deriv smoke tests (review request)
         tester.test_bridge_only_mode,                         # Bridge-only mode testing
         tester.test_iq_option_live_login_check,               # Live login check endpoint
         tester.test_quick_order_asset_normalization,          # Asset normalization and alerts
