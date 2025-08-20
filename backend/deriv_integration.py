@@ -102,6 +102,7 @@ def map_asset_to_deriv_symbol(asset: str) -> Optional[str]:
         "LTCUSDT": "cryLTCUSD",
         "ADAUSDT": "cryADAUSD",
         "DOTUSDT": "cryDOTUSD",
+        "BNBUSDT": "cryBNBUSD",
         # Synthetics (24/7)
         "VOLATILITY_10": "R_10",
         "VOLATILITY_25": "R_25",
