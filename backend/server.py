@@ -1587,6 +1587,12 @@ async def get_alerts(limit: int = 20, unread_only: bool = False):
             if "_id" in alert:
                 alert["_id"] = str(alert["_id"])
         
+        # Padronizar nomes para Deriv
+        for a in alerts:
+            try:
+                a["symbol"] = to_deriv_code(a.get("symbol")) if a.get("symbol") else a.get("symbol")
+            except Exception:
+                pass
         return {"alerts": alerts}
     except Exception as e:
         logger.error(f"Error fetching alerts: {e}")
