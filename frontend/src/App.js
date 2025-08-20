@@ -867,15 +867,15 @@ function App() {
 
           {/* Right Column - Notifications &amp; Rules */}
           <div className="space-y-6">
-            {/* IQ Option Status */}
+            {/* Deriv Status */}
             <Card className="bg-gray-900/50 border-gray-800/50 backdrop-blur-sm">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg text-green-400">IQ Option Status</CardTitle>
+                  <CardTitle className="text-lg text-green-400">Deriv Status</CardTitle>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={testIQOptionConnection}
+                    onClick={testDerivDiagnostics}
                     className="text-xs"
                   >
                     Testar Conexão
@@ -883,35 +883,31 @@ function App() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                {iqOptionStatus ? (
+                {derivStatus ? (
                   <>
                     <div className="flex items-center space-x-2">
-                      {iqOptionStatus.status === 'success' ? (
+                      {derivStatus.status === 'success' ? (
                         <CheckCircle className="h-4 w-4 text-green-400" />
                       ) : (
                         <AlertTriangle className="h-4 w-4 text-red-400" />
                       )}
-                      <span className="text-sm text-gray-300">{iqOptionStatus.message}</span>
+                      <span className="text-sm text-gray-300">{derivStatus.summary || derivStatus.message}</span>
                     </div>
-                    {iqOptionStatus.email && (
-                      <div className="text-xs text-gray-400">
-                        <span>Email: {iqOptionStatus.email}</span>
-                      </div>
-                    )}
                     <div className="text-xs text-gray-400">
-                      <span>Conta: {iqOptionStatus.account_type ? iqOptionStatus.account_type.toUpperCase() : '—'}</span>
+                      <span>Conectado: {derivStatus.deriv_connected ? 'Sim' : 'Não'}</span>
                     </div>
-                    {typeof iqOptionStatus.balance !== 'undefined' && (
-                      <div className="text-xs text-gray-400">
-                        <span>Saldo: ${iqOptionStatus.balance}</span>
-                      </div>
-                    )}
+                    <div className="text-xs text-gray-400">
+                      <span>Autenticado: {derivStatus.deriv_authenticated ? 'Sim' : 'Não'}</span>
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      <span>Symbols: {derivStatus.available_symbols ?? 0}</span>
+                    </div>
                     <div className="text-xs text-blue-400">
                       <Info className="h-3 w-3 inline mr-1" />
-                      Apenas notificações ativadas
+                      Ambiente: {derivStatus.use_demo ? 'DEMO' : 'REAL'}
                     </div>
-                    {lastIqUpdate && (
-                      <div className="text-[10px] text-gray-500">Atualizado em {lastIqUpdate.toLocaleTimeString()}</div>
+                    {lastDerivUpdate && (
+                      <div className="text-[10px] text-gray-500">Atualizado em {lastDerivUpdate.toLocaleTimeString()}</div>
                     )}
                   </>
                 ) : (
