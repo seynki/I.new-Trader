@@ -2132,7 +2132,7 @@ async def quick_order(order: QuickOrderRequest):  # noqa: F811
                             "priority": "critical",
                             "timestamp": datetime.now(),
                             "signal_type": "buy" if order.direction == "call" else "sell",
-                            "symbol": normalized,
+                            "symbol": to_deriv_code(normalized),
                             "iq_option_ready": False,
                             "read": False,
                         }
