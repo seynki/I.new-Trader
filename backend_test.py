@@ -3333,11 +3333,12 @@ def main():
     
     # Run focused tests based on current review request
     tests = [
-        tester.test_bridge_only_mode,                     # NEW: Bridge-only mode testing
-        tester.test_iq_option_live_login_check,           # NEW: Live login check endpoint
-        tester.test_quick_order_asset_normalization,      # NEW: Asset normalization and alerts
-        tester.test_quick_order_review_request_specific,  # PRIMARY: Review request specific tests
-        tester.test_iq_option_diagnostics_endpoint,       # Diagnostics endpoint
+        tester.test_deriv_smoke_tests,                        # NEW: Deriv smoke tests (review request)
+        tester.test_bridge_only_mode,                         # Bridge-only mode testing
+        tester.test_iq_option_live_login_check,               # Live login check endpoint
+        tester.test_quick_order_asset_normalization,          # Asset normalization and alerts
+        tester.test_quick_order_review_request_specific,      # Review request specific tests
+        tester.test_iq_option_diagnostics_endpoint,           # Diagnostics endpoint
     ]
     
     for test in tests:
