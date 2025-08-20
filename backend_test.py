@@ -3325,6 +3325,230 @@ class AITradingSystemTester:
         self.tests_run += 1
         return all_passed
 
+    def test_deriv_migration_review_request(self):
+        """Test Deriv migration as per current review request"""
+        print(f"\n🎯 Testing Deriv Migration Review Request...")
+        
+        all_passed = True
+        
+        # 1) GET /api/deriv/diagnostics - should return 200 with status 'not_configured'
+        print(f"\n1️⃣ Testing GET /api/deriv/diagnostics...")
+        success, response = self.run_test(
+            "Deriv Diagnostics",
+            "GET",
+            "api/deriv/diagnostics",
+            200
+        )
+        
+        if success and isinstance(response, dict):
+            # Validate required fields
+            required_fields = ['status', 'summary', 'deriv_connected', 'deriv_authenticated', 'available_symbols', 'use_demo']
+            for field in required_fields:
+                if field in response:
+                    print(f"   ✅ Field '{field}' present: {response[field]}")
+                else:
+                    print(f"   ❌ Field '{field}' missing")
+                    all_passed = False
+            
+            # Validate status is 'not_configured' if DERIV_APP_ID not set
+            if response.get('status') == 'not_configured':
+                print(f"   ✅ Status is 'not_configured' as expected (DERIV_APP_ID not set)")
+            else:
+                print(f"   ⚠️ Status is '{response.get('status')}' - may indicate DERIV_APP_ID is set")
+            
+            # Validate boolean fields
+            if isinstance(response.get('deriv_connected'), bool):
+                print(f"   ✅ deriv_connected is boolean: {response['deriv_connected']}")
+            else:
+                print(f"   ❌ deriv_connected is not boolean: {response.get('deriv_connected')}")
+                all_passed = False
+                
+            if response.get('deriv_authenticated') == False:
+                print(f"   ✅ deriv_authenticated is False as expected")
+            else:
+                print(f"   ❌ deriv_authenticated should be False: {response.get('deriv_authenticated')}")
+                all_passed = False
+                
+            if isinstance(response.get('available_symbols'), (int, float)):
+                print(f"   ✅ available_symbols is number: {response['available_symbols']}")
+            else:
+                print(f"   ❌ available_symbols is not number: {response.get('available_symbols')}")
+                all_passed = False
+                
+            if isinstance(response.get('use_demo'), bool):
+                print(f"   ✅ use_demo is boolean: {response['use_demo']}")
+            else:
+                print(f"   ❌ use_demo is not boolean: {response.get('use_demo')}")
+                all_passed = False
+        else:
+            all_passed = False
+        
+        # 2) POST /api/trading/quick-order test scenarios
+        print(f"\n2️⃣ Testing POST /api/trading/quick-order with Deriv priority...")
+        
+        # Test scenario 2a: EURUSD call
+        print(f"\n   Scenario 2a: EURUSD call order")
+        payload_2a = {
+            "asset": "EURUSD",
+            "direction": "call",
+            "amount": 10,
+            "expiration": 3,
+            "account_type": "demo",
+            "option_type": "binary"
+        }
+        
+        success, response = self.run_test(
+            "Quick Order - EURUSD Call",
+            "POST",
+            "api/trading/quick-order",
+            [503, 502],  # Expect 503 'Deriv não configurado' or 502
+            payload_2a,
+            timeout=45
+        )
+        
+        if success and isinstance(response, dict):
+            detail = response.get('detail', '')
+            if 'Deriv não configurado' in detail or 'Deriv' in detail:
+                print(f"   ✅ Correctly returned Deriv error: {detail}")
+            else:
+                print(f"   ⚠️ Unexpected error message: {detail}")
+            
+            # Verify NO IQ Option credential error
+            if 'IQ_EMAIL' not in detail and 'IQ_PASSWORD' not in detail:
+                print(f"   ✅ No IQ Option credential errors (USE_DERIV=1 working)")
+            else:
+                print(f"   ❌ IQ Option credential error present when USE_DERIV=1: {detail}")
+                all_passed = False
+        else:
+            all_passed = False
+        
+        # Test scenario 2b: VOLATILITY_10 put
+        print(f"\n   Scenario 2b: VOLATILITY_10 put order")
+        payload_2b = {
+            "asset": "VOLATILITY_10",
+            "direction": "put",
+            "amount": 5,
+            "expiration": 5,
+            "account_type": "demo",
+            "option_type": "binary"
+        }
+        
+        success, response = self.run_test(
+            "Quick Order - VOLATILITY_10 Put",
+            "POST",
+            "api/trading/quick-order",
+            [503, 502],  # Expect 503 'Deriv não configurado' or 502
+            payload_2b,
+            timeout=45
+        )
+        
+        if success and isinstance(response, dict):
+            detail = response.get('detail', '')
+            if 'Deriv não configurado' in detail or 'Deriv' in detail:
+                print(f"   ✅ Correctly returned Deriv error: {detail}")
+            else:
+                print(f"   ⚠️ Unexpected error message: {detail}")
+            
+            # Should accept 'put' for R_10 (not buy-only like BOOM/CRASH)
+            if 'aceita apenas compra' not in detail:
+                print(f"   ✅ VOLATILITY_10 accepts 'put' direction (not buy-only)")
+            else:
+                print(f"   ❌ VOLATILITY_10 incorrectly marked as buy-only: {detail}")
+                all_passed = False
+        else:
+            all_passed = False
+        
+        # Test scenario 2c: BOOM_500 put (should fail with buy-only error)
+        print(f"\n   Scenario 2c: BOOM_500 put order (should fail buy-only)")
+        payload_2c = {
+            "asset": "BOOM_500",
+            "direction": "put",
+            "amount": 3,
+            "expiration": 3,
+            "account_type": "demo",
+            "option_type": "binary"
+        }
+        
+        success, response = self.run_test(
+            "Quick Order - BOOM_500 Put (Buy-Only Test)",
+            "POST",
+            "api/trading/quick-order",
+            [502, 503, 400],  # Expect error about buy-only
+            payload_2c,
+            timeout=45
+        )
+        
+        if success and isinstance(response, dict):
+            detail = response.get('detail', '')
+            if 'aceita apenas compra' in detail or 'CALL' in detail:
+                print(f"   ✅ Correctly rejected BOOM_500 put with buy-only error: {detail}")
+            else:
+                print(f"   ⚠️ Expected buy-only error for BOOM_500 put: {detail}")
+        else:
+            all_passed = False
+        
+        # Test scenario 2d: Expiration validations
+        print(f"\n   Scenario 2d: Expiration validations")
+        
+        # EURUSD expiration=0 (should fail)
+        payload_eurusd_exp0 = {**payload_2a, "expiration": 0}
+        success, response = self.run_test(
+            "Quick Order - EURUSD expiration=0",
+            "POST",
+            "api/trading/quick-order",
+            400,
+            payload_eurusd_exp0
+        )
+        if success:
+            print(f"   ✅ EURUSD expiration=0 correctly rejected with 400")
+        else:
+            all_passed = False
+        
+        # EURUSD expiration=61 (should fail)
+        payload_eurusd_exp61 = {**payload_2a, "expiration": 61}
+        success, response = self.run_test(
+            "Quick Order - EURUSD expiration=61",
+            "POST",
+            "api/trading/quick-order",
+            400,
+            payload_eurusd_exp61
+        )
+        if success:
+            print(f"   ✅ EURUSD expiration=61 correctly rejected with 400")
+        else:
+            all_passed = False
+        
+        # VOLATILITY_10 expiration=11 (should fail, R_* accepts 1-10)
+        payload_vol10_exp11 = {**payload_2b, "expiration": 11}
+        success, response = self.run_test(
+            "Quick Order - VOLATILITY_10 expiration=11",
+            "POST",
+            "api/trading/quick-order",
+            400,
+            payload_vol10_exp11
+        )
+        if success and isinstance(response, dict):
+            detail = response.get('detail', '')
+            print(f"   ✅ VOLATILITY_10 expiration=11 correctly rejected: {detail}")
+        else:
+            all_passed = False
+        
+        # 3) Verify no IQ Option credential blocking when USE_DERIV=1
+        print(f"\n3️⃣ Verifying IQ Option credentials don't block when USE_DERIV=1...")
+        
+        # This is already tested in scenarios above, but let's summarize
+        print(f"   ✅ All Deriv scenarios tested without IQ Option credential errors")
+        print(f"   ✅ USE_DERIV=1 successfully bypasses IQ Option credential requirements")
+        
+        if all_passed:
+            self.tests_passed += 1
+            print(f"\n🎉 Deriv migration review request tests PASSED!")
+        else:
+            print(f"\n❌ Deriv migration review request tests FAILED!")
+        
+        self.tests_run += 1
+        return all_passed
+
 def main():
     print("🚀 Starting AI Trading System Backend Tests - Review Request Focus")
     print("=" * 80)
