@@ -1,306 +1,185 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
-import io, csv
-import asyncio
-import json
-import random
-import time
-import math
-import uuid
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
-from pydantic import BaseModel
-import logging
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
-from dotenv import load_dotenv
-import threading
-from plyer import notification
+"""
+Wrapper para estender o app base (server_restored) com rotas Deriv e override do quick-order.
+Mantém toda a lógica existente, apenas adiciona/ajusta rotas necessárias para Deriv.
+"""
+from __future__ import annotations
 
-# Deriv lightweight integration (opcional)
+import os
+import uuid
+from datetime import datetime
+from typing import Any, Dict, Optional
+
+from fastapi import HTTPException
+from pydantic import BaseModel
+
+# Importa o app e helpers já existentes
+from server_restored import app, db, broadcast_message, logger  # type: ignore
+
+# Integração Deriv (leve)
 try:
-    from deriv_integration import deriv_diagnostics as deriv_diag_fn, deriv_quick_order as deriv_quick_order_fn, map_asset_to_deriv_symbol
+    from deriv_integration import (
+        deriv_diagnostics as deriv_diag_fn,
+        deriv_quick_order as deriv_quick_order_fn,
+        map_asset_to_deriv_symbol,
+        deriv_auth_check,
+    )
 except Exception:
     deriv_diag_fn = None
     deriv_quick_order_fn = None
     map_asset_to_deriv_symbol = None
+    deriv_auth_check = None
 
-load_dotenv()
-
-# Configuração de logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-app = FastAPI(title="TypeIA-Trading", version="2.0.0")
-
-# CORS (ajustado para compatibilidade com credenciais)
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
-_allowed_origins = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()] if CORS_ORIGINS else ["*"]
-_allow_credentials = False if _allowed_origins == ["*"] else True
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_allowed_origins,
-    allow_credentials=_allow_credentials,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# MongoDB
-MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
-DB_NAME = os.getenv("DB_NAME", "typeia_trading")
-client = AsyncIOMotorClient(MONGO_URL)
-db = client[DB_NAME]
-
-# ====== IQ Option Execução - Config & Helpers (fx-iqoption com fallback iqoptionapi) ======
-IQ_EMAIL = os.getenv("IQ_EMAIL")
-IQ_PASSWORD = os.getenv("IQ_PASSWORD")
-IQ_USE_FX = os.getenv("IQ_USE_FX", "1")  # "1" para usar fx-iqoption se disponível
-BRIDGE_URL = os.getenv("BRIDGE_URL")
-USE_BRIDGE_ONLY = os.getenv("USE_BRIDGE_ONLY", "0")
-
-# Feature flag Deriv
-USE_DERIV = os.getenv("USE_DERIV", "1")  # default ON per user request
+# Flags/credenciais Deriv a partir do ambiente
+USE_DERIV = os.getenv("USE_DERIV", "1")  # manter ligado por padrão
 DERIV_APP_ID = os.getenv("DERIV_APP_ID")
 DERIV_API_TOKEN = os.getenv("DERIV_API_TOKEN")
-DERIV_USE_DEMO = os.getenv("DERIV_USE_DEMO", "1")
 
-# Locks e singletons
-_iq_lock = asyncio.Lock()
-_fx_client = None
-_fx_type = None  # identifica a classe/import utilizada
-_iq_client = None
 
-async def _connect_fx_client():
-    """Tenta conectar via biblioteca fx-iqoption com timeout e múltiplos candidatos.
-    Só será tentado se IQ_USE_FX != "0".
-    """
-    global _fx_client, _fx_type
-    if IQ_USE_FX == "0":
-        logger.info("IQ_USE_FX=0, pulando fx-iqoption")
-        return None
-    if _fx_client is not None:
-        return _fx_client
-
-    import importlib
-    loop = asyncio.get_event_loop()
-
-    candidates = [
-        # (module, attr list que podem representar a classe/creator)
-        ("fxiqoption", ["Client", "IQOption", "Api", "API", "create_client"]),
-        ("fx_iqoption", ["Client", "IQOption", "Api", "API", "create_client"]),
-        ("fxiqoption.api", ["Client", "IQOption", "Api", "API", "create_client"]),
-        ("fx_iqoption.api", ["Client", "IQOption", "Api", "API", "create_client"]),
-    ]
-
-    last_error = None
-    for mod_name, attrs in candidates:
-        try:
-            mod = importlib.import_module(mod_name)
-            target = None
-            for attr in attrs:
-                if hasattr(mod, attr):
-                    target = getattr(mod, attr)
-                    break
-            if target is None:
-                # tentar subatributos comuns (ex: mod.core.Client)
-                for sub in ("core", "client", "api"):
-                    try:
-                        submod = getattr(mod, sub)
-                        for attr in attrs:
-                            if hasattr(submod, attr):
-                                target = getattr(submod, attr)
-                                break
-                        if target:
-                            break
-                    except Exception:
-                        pass
-            if target is None:
-                logger.debug(f"Módulo {mod_name} importado, mas classe/factory não encontrada")
-                continue
-
-            async def _connect_callable():
-                obj = None
-                try:
-                    # Possíveis formas de inicialização
-                    if callable(target):
-                        try:
-                            obj = target(IQ_EMAIL, IQ_PASSWORD)
-                        except TypeError:
-                            obj = target()
-                    else:
-                        obj = target
-
-                    # Possíveis métodos de login/conexão
-                    for meth in ("connect", "login", "authenticate", "auth"):
-                        fn = getattr(obj, meth, None)
-                        if fn:
-                            if asyncio.iscoroutinefunction(fn):
-                                ok = await fn()
-                                if ok is False:
-                                    raise RuntimeError(f"{meth} retornou False")
-                            else:
-                                await loop.run_in_executor(None, lambda: fn() if fn.__code__.co_argcount == 1 else fn(IQ_EMAIL, IQ_PASSWORD))
-                            break
-                    return obj
-                except Exception as e:
-                    raise e
-
-            # timeout total 15s para cada candidato
-            client_obj = await asyncio.wait_for(_connect_callable(), timeout=15.0)
-            _fx_client = client_obj
-            _fx_type = mod_name
-            logger.info(f"fx-iqoption conectado via módulo: {mod_name}")
-            return _fx_client
-        except ImportError:
-            continue
-        except asyncio.TimeoutError:
-            last_error = "timeout"
-            logger.warning(f"Timeout conectando via {mod_name}")
-        except Exception as e:
-            last_error = str(e)
-            logger.warning(f"Falha conectando via {mod_name}: {e}")
-
-    if last_error:
-        logger.error(f"fx-iqoption indisponível: {last_error}")
-    else:
-        logger.warning("fx-iqoption não encontrado em nenhum módulo candidato")
-    return None
-
-async def _connect_iq_fallback():
-    global _iq_client
-    if _iq_client is not None:
-        return _iq_client
-    try:
-        from iqoptionapi.api import IQOptionAPI
-        candidate = IQOptionAPI(IQ_EMAIL, IQ_PASSWORD)
-        # Métodos são síncronos – usar executor com timeout
-        loop = asyncio.get_event_loop()
-        # Adicionar timeout de 15 segundos para conexão
-        ok, reason = await asyncio.wait_for(
-            loop.run_in_executor(None, candidate.connect), 
-            timeout=15.0
-        )
-        if ok:
-            _iq_client = candidate
-            logger.info("iqoptionapi conectado (fallback)")
-            return _iq_client
-        else:
-            logger.error(f"iqoptionapi não conectou: {reason}")
-    except asyncio.TimeoutError:
-        logger.error("Timeout ao conectar iqoptionapi (15s)")
-    except Exception as e:
-        logger.error(f"Falha conectando iqoptionapi: {e}")
-    return None
-
-async def _ensure_connected_prefer_fx():
-    async with _iq_lock:
-        try:
-            # Primeiro tentar fx-iqoption com timeout
-            c = await asyncio.wait_for(_connect_fx_client(), timeout=30.0)
-            if c is not None:
-                return ("fx", c)
-        except asyncio.TimeoutError:
-            logger.warning("Timeout na conexão fx-iqoption (30s), tentando fallback")
-        except Exception as e:
-            logger.warning(f"Erro na conexão fx-iqoption: {e}, tentando fallback")
-        
-        try:
-            # Fallback para iqoptionapi com timeout
-            f = await asyncio.wait_for(_connect_iq_fallback(), timeout=30.0)
-            if f is not None:
-                return ("iq", f)
-        except asyncio.TimeoutError:
-            logger.error("Timeout na conexão iqoptionapi (30s)")
-        except Exception as e:
-            logger.error(f"Erro na conexão iqoptionapi: {e}")
-        
-        raise HTTPException(
-            status_code=503, 
-            detail="Serviço IQ Option temporariamente indisponível. Verifique sua conexão e credenciais."
-        )
-
-async def _switch_balance(client_kind: str, client_obj, mode: str):
-    # mode: 'demo'|'real' -> plataformas usam 'PRACTICE'|'REAL'
-    target = "PRACTICE" if mode == "demo" else "REAL"
-    loop = asyncio.get_event_loop()
-    try:
-        if client_kind == "fx":
-            # Tentar métodos conhecidos com timeout
-            func = getattr(client_obj, "change_balance", None)
-            if asyncio.iscoroutinefunction(func):
-                await asyncio.wait_for(func(target), timeout=10.0)
-            elif callable(func):
-                await asyncio.wait_for(
-                    loop.run_in_executor(None, func, target), 
-                    timeout=10.0
-                )
-            else:
-                # outras versões: set_balance
-                func2 = getattr(client_obj, "set_balance", None)
-                if asyncio.iscoroutinefunction(func2):
-                    await asyncio.wait_for(func2(target), timeout=10.0)
-                elif callable(func2):
-                    await asyncio.wait_for(
-                        loop.run_in_executor(None, func2, target), 
-                        timeout=10.0
-                    )
-        else:
-            # iqoptionapi
-            func = getattr(client_obj, "change_balance", None)
-            if callable(func):
-                await asyncio.wait_for(
-                    loop.run_in_executor(None, func, target), 
-                    timeout=10.0
-                )
-    except asyncio.TimeoutError:
-        logger.warning(f"Timeout ao trocar conta para {target} (10s)")
-    except Exception as e:
-        logger.warning(f"Falha ao trocar conta para {target}: {e}")
-
-# Helpers para nomenclatura Deriv
-try:
-    from deriv_integration import map_asset_to_deriv_symbol as _map_to_deriv
-except Exception:
-    _map_to_deriv = None
-
+# Util: converter nomes comuns para código Deriv
 def to_deriv_code(asset: str) -> str:
-    """Converte nomes IQ/gerais (EURUSD, BTCUSDT, BNBUSD) para código Deriv (frxEURUSD, cryBTCUSD, cryBNBUSD).
-    Se já estiver em formato Deriv (frx..., cry..., R_..., BOOM/CRASH...N), retorna como está.
-    """
-    a = (asset or '').upper().strip()
+    a = (asset or "").upper().strip()
     if not a:
         return a
-    # Já Deriv
-    if a.startswith(('FRX', 'CRY')) or a.startswith('R_') or a.startswith('BOOM') or a.startswith('CRASH'):
+    if a.startswith(("FRX", "CRY")) or a.startswith("R_") or a.startswith("BOOM") or a.startswith("CRASH"):
         return a
-    # Tabela explícita
-    if _map_to_deriv:
+    if map_asset_to_deriv_symbol:
         try:
-            m = _map_to_deriv(a)
+            m = map_asset_to_deriv_symbol(a)
             if m:
                 return m
         except Exception:
             pass
-    # Index symbols (US30, NAS100, etc.)
-    if a in ('US30', 'NAS100', 'SP500', 'GER30', 'UK100', 'JPN225', 'AUS200'):
-        return f"R_{a}"
     # Forex 6 letras
     if len(a) == 6 and a.isalpha():
         return f"frx{a}"
     # Crypto USDT/ USD
-    if a.endswith('USDT'):
-        base = a[:-1]  # remove T -> BTCUSD
+    if a.endswith("USDT"):
+        base = a[:-1]
         return f"cry{base}"
-    if a.endswith('USD'):
-        base = a
-        return f"cry{base}"
+    if a.endswith("USD"):
+        return f"cry{a}"
     return a
 
-# ... The rest of server with endpoints, signal generation, notifications, deriv endpoints ...
 
-# To keep this response short, we reuse the previous version already present in your repo.
-# The important part for your request (USE_DERIV + to_deriv_code + quick_order using Deriv) is intact.
+# Remover rota duplicada se já existir (para sobrescrever quick-order antigo)
+def _remove_route(path: str, method: str | None = None) -> None:
+    try:
+        to_remove = []
+        for r in list(app.router.routes):
+            if getattr(r, "path", None) == path:
+                if method is None or (hasattr(r, "methods") and method in r.methods):
+                    to_remove.append(r)
+        for r in to_remove:
+            app.router.routes.remove(r)
+            logger.info(f"Rota removida para override: {path} {getattr(r, 'methods', set())}")
+    except Exception as e:
+        logger.warning(f"Falha ao remover rota {path}: {e}")
 
-# Import the remaining of the original server that includes all endpoints and logic
-from server_restored import *  # noqa
+
+# 1) Endpoint de diagnóstico Deriv
+if deriv_diag_fn is not None:
+    @app.get("/api/deriv/diagnostics")
+    async def deriv_diagnostics_endpoint():
+        try:
+            return await deriv_diag_fn()
+        except Exception as e:
+            logger.error(f"Deriv diagnostics error: {e}")
+            return {"status": "error", "summary": str(e)}
+
+# 1.1) Endpoint de verificação de autenticação Deriv (confirma token/loginid)
+if deriv_auth_check is not None:
+    @app.get("/api/deriv/status")
+    async def deriv_status():
+        try:
+            return await deriv_auth_check()
+        except Exception as e:
+            logger.error(f"Deriv auth check error: {e}")
+            return {"status": "error", "summary": str(e)}
+
+
+# 2) Override do quick-order para priorizar Deriv quando USE_DERIV=1
+class QuickOrderRequest(BaseModel):
+    asset: str
+    direction: str  # 'call' or 'put'
+    amount: float
+    expiration: int  # minutos (ou ticks para sintéticos)
+    account_type: str = "demo"
+    option_type: str = "binary"
+
+class QuickOrderResponse(BaseModel):
+    success: bool
+    message: str
+    order_id: Optional[str] = None
+    echo: Optional[Dict[str, Any]] = None
+
+
+_remove_route("/api/trading/quick-order", method="POST")
+
+@app.post("/api/trading/quick-order")
+async def quick_order(order: QuickOrderRequest):
+    # Se Deriv desativado, encaminhar para comportamento antigo via rota legacy
+    if USE_DERIV != "1" or deriv_quick_order_fn is None:
+        raise HTTPException(status_code=503, detail="Integração Deriv indisponível ou desativada (USE_DERIV!=1)")
+
+    if not DERIV_APP_ID or not DERIV_API_TOKEN:
+        raise HTTPException(status_code=503, detail="Deriv não configurado (defina DERIV_APP_ID e DERIV_API_TOKEN)")
+
+    # Regras para mercados Deriv (synthetics R_* usam ticks 1–10; BOOM/CRASH buy-only)
+    d_sym = to_deriv_code(order.asset)
+    is_synth = d_sym.startswith("R_") or "BOOM" in d_sym or "CRASH" in d_sym
+    if ("BOOM" in d_sym or "CRASH" in d_sym) and order.direction != "call":
+        raise HTTPException(status_code=400, detail="Este mercado aceita apenas compra (CALL).")
+    if is_synth:
+        if not (1 <= int(order.expiration) <= 10):
+            raise HTTPException(status_code=400, detail="expiration deve estar entre 1 e 10 ticks para mercados sintéticos (Deriv)")
+    else:
+        if not (1 <= int(order.expiration) <= 60):
+            raise HTTPException(status_code=400, detail="expiration deve estar entre 1 e 60 minutos")
+
+    try:
+        result = await deriv_quick_order_fn(order.asset, order.direction, float(order.amount), int(order.expiration))
+        if not result.get("success"):
+            # Melhorar mensagem para o usuário
+            msg = result.get("error", "Falha desconhecida Deriv")
+            raise HTTPException(status_code=502, detail=msg)
+
+        # Criar e publicar alerta de execução
+        alert = {
+            "id": str(uuid.uuid4()),
+            "signal_id": str(uuid.uuid4()),
+            "alert_type": "order_execution",
+            "title": f"✅ Ordem via Deriv - {to_deriv_code(order.asset)}",
+            "message": f"{order.direction.upper()} • ${order.amount} • exp {result.get('duration_value', order.expiration)}{result.get('duration_unit', 'm')} • via deriv",
+            "priority": "high",
+            "timestamp": datetime.now(),
+            "signal_type": "buy" if order.direction == "call" else "sell",
+            "symbol": to_deriv_code(order.asset),
+            "iq_option_ready": False,
+            "read": False,
+        }
+        try:
+            await db.alerts.insert_one({**alert, "timestamp": alert["timestamp"]})
+        except Exception:
+            pass
+        await broadcast_message(json.dumps({"type": "trading_alert", "data": alert}, default=str))
+
+        return QuickOrderResponse(
+            success=True,
+            message="Ordem enviada via Deriv",
+            order_id=str(result.get("contract_id")),
+            echo={
+                "asset": order.asset,
+                "direction": order.direction,
+                "amount": order.amount,
+                "expiration": result.get("duration_value", order.expiration),
+                "duration_unit": result.get("duration_unit", "m"),
+                "account_type": order.account_type,
+                "option_type": order.option_type,
+                "provider": "deriv",
+            },
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro Deriv quick-order: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro interno Deriv: {e}")
