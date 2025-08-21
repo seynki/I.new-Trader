@@ -371,36 +371,23 @@ function App() {
     }
   };
 
-  // Deriv-first symbol formatting: mostra frx*/cry* como BASE/QUOTE; mantém códigos Deriv no atributo bruto
+  // Deriv-first symbol formatting: mostrar sempre códigos Deriv no frontend
   const formatIQOptionSymbol = (symbol) => {
     if (!symbol) return '—';
-    const s = String(symbol);
+    const s = String(symbol).toUpperCase();
 
-    // If already Deriv code, convert for display only
-    if (/^(frx|cry)/i.test(s)) {
-      const upper = s.toUpperCase();
-      if (upper.startsWith('FRX')) {
-        const pair = upper.slice(3); // EURUSD
-        if (/^[A-Z]{6}$/.test(pair)) return `${pair.slice(0,3)}/${pair.slice(3)}`;
-        return pair;
-      }
-      if (upper.startsWith('CRY')) {
-        const rest = upper.slice(3); // BTCUSD or BNBUSD
-        if (rest.endsWith('USD')) return `${rest.replace('USD','')}/USD`;
-        return rest;
-      }
-      return s;
-    }
+    // Já está no padrão Deriv
+    if (/^(FRX|CRY|R_|BOOM|CRASH)/.test(s)) return s;
 
-    // Legacy formats (EURUSD, BTCUSDT)
-    if (isForexPair(s)) {
-      return `${s.slice(0,3)}/${s.slice(3)}`;
+    // Formatos legados -> converter para Deriv
+    if (/^[A-Z]{6}$/.test(s)) { // EURUSD
+      return `FRX${s}`.toLowerCase().replace('frx', 'frx'); // manter prefixo frx
     }
-    if (s.endsWith('USDT')) {
-      return `${s.replace('USDT','')}/USD`;
+    if (s.endsWith('USDT')) { // BTCUSDT -> cryBTCUSD
+      return `CRY${s.replace('USDT','USD')}`.toLowerCase().replace('cry', 'cry');
     }
-    if (/USD$/.test(s) && !isForexPair(s)) {
-      return `${s.replace('USD','')}/USD`;
+    if (/USD$/.test(s) && !/^[A-Z]{6}$/.test(s)) { // BNBUSD -> cryBNBUSD
+      return `CRY${s}`.toLowerCase().replace('cry','cry');
     }
     return s;
   };
