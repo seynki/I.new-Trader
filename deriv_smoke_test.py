@@ -31,7 +31,7 @@ class DerivSmokeTestRunner:
             print(f"❌ Erro ao ler frontend/.env: {e}")
         
         # Fallback
-        fallback_url = "https://market-data-verify.preview.emergentagent.com"
+        fallback_url = "https://trading-error-fix-1.preview.emergentagent.com"
         print(f"⚠️ Usando URL fallback: {fallback_url}")
         return fallback_url
     
