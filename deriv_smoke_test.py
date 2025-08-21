@@ -234,7 +234,8 @@ class DerivSmokeTestRunner:
                         'DERIV_APP_ID',
                         'DERIV_API_TOKEN',
                         'Falha na autorização',
-                        'timeout'
+                        'timeout',
+                        'Resposta de compra inválida'
                     ]
                     
                     if any(msg in detail for msg in expected_messages):
