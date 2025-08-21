@@ -396,7 +396,7 @@ test_plan:
 
 agent_communication:
   - agent: "main"
-    message: "🧪 Planejamento de Smoke Test solicitado pelo usuário: 1) GET /api/deriv/diagnostics deve retornar status/status_code corretos e campos de configuração; 2) POST /api/trading/quick-order com payload Opção A (VOLATILITY_10, call, amount=1, expiration=5, option_type=binary, account_type=demo); 3) GET /api/market-data deve conter símbolos no padrão Deriv (frx*, cry*, R_*, BOOM/CRASH quando aplicável); 4) Todas as chamadas usando REACT_APP_BACKEND_URL com prefixo /api. Executar primeiro backend; frontend será automatizado depois que backend passar."
+    message: "🧪 Fix aplicado no backend: Melhorado o fluxo de compra Deriv (re-authorize + extração tolerante do contract_id) para resolver 'Resposta de compra inválida'. Por favor, reexecutar os smoke tests: (1) GET /api/deriv/diagnostics; (2) POST /api/trading/quick-order com Opção A; (3) GET /api/market-data. Confirmar que o POST agora retorna 200/success quando credenciais Deriv válidas estão presentes ou erro 503/502 com mensagem mais descritiva quando ausentes. Em seguida, posso iniciar testes automatizados de frontend conforme solicitado pelo usuário."
   - agent: "testing"
     message: "✅ BACKEND TESTING COMPLETED - All high-priority backend tasks are working correctly. Notification system fully functional with proper endpoint responses, alert generation, and WebSocket connectivity. IQ Option integration working for notifications. Signal processing enhanced and generating quality signals. Fixed WebSocket dependency issue by installing uvicorn[standard] and websockets. System is ready for production use. All critical backend functionality verified and operational."
   - agent: "testing"
