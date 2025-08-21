@@ -380,7 +380,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "IQ Option Diagnostics Endpoint"
+    - "Deriv Endpoints and Safe Feature Flag"
+    - "Backend - Padronizar nomes de ativos para Deriv em todas respostas"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
