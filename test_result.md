@@ -241,6 +241,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ PASSED - Deriv Standardization End-to-End Testing Completed: (1) GET /api/market-data: ✅ PASSOU - Todos os 7 símbolos retornados seguem padrão Deriv (cryBTCUSD, cryETHUSD, cryBNBUSD, frxEURUSD, frxGBPUSD, frxUSDJPY, R_US30). (2) GET /api/symbols: ✅ PASSOU - Todos os 7 símbolos seguem padrão Deriv. (3) GET /api/signals?limit=5: ❌ FALHOU - Endpoint retorna 500 devido a problemas de conexão MongoDB (não relacionado à padronização Deriv). (4) WebSocket /api/ws por 5s: ✅ PASSOU - Recebidas 4 mensagens market_update, todos símbolos seguem padrão Deriv. (5) POST /api/trading/quick-order com asset=BOOM_500 direction=put: ✅ PASSOU - Retorna 400 com mensagem 'Este mercado aceita apenas compra (CALL)'. (6) POST /api/trading/quick-order com asset=EURUSD direction=call: ✅ PASSOU - Retorna 503 'Deriv não configurado (defina DERIV_APP_ID e DERIV_API_TOKEN)'. CONCLUSÃO: 5/6 testes passaram (83.3% success rate). Padronização Deriv funcionando corretamente em todos endpoints exceto /api/signals que tem problema de infraestrutura MongoDB."
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - Review Request Português Smoke Tests: GET /api/market-data confirmado com 100% dos símbolos padronizados formato Deriv. Todos os 7 símbolos retornados [cryBTCUSD, cryETHUSD, cryBNBUSD, frxEURUSD, frxGBPUSD, frxUSDJPY, R_US30] seguem padrão Deriv (frx*, cry*, R_*). Nenhum símbolo com formato SP500/NAS100 ou barras (/) detectado. Tempo de resposta: 84ms. Padronização Deriv funcionando corretamente conforme especificado no review request português."
 
   - task: "POST /api/trading/quick-order Asset Normalization Testing"
     implemented: true
