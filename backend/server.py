@@ -1106,10 +1106,10 @@ class NotificationManager:
         """Cria um alerta de trading baseado no sinal"""
         priority = "high" if signal.confidence_score >= 80 else "medium" if signal.confidence_score >= 70 else "low"
         
-        sym_fmt = self.format_iq_symbol(signal.symbol)
-        title = f"🎯 {('BUY' if signal.signal_type=='BUY' else 'SELL')} Signal - {sym_fmt}"
+        sym_deriv = to_deriv_code(signal.symbol)
+        title = f"🎯 {('BUY' if signal.signal_type=='BUY' else 'SELL')} Signal - {sym_deriv}"
         message = (
-            f"Oportunidade {signal.signal_type} detectada! Ativo: {sym_fmt} | "
+            f"Oportunidade {signal.signal_type} detectada! Ativo: {sym_deriv} | "
             f"Score: {signal.confidence_score}% | RR: {signal.risk_reward_ratio}:1 | "
             f"Entrada: {signal.entry_price:.4f} | Stop: {signal.stop_loss:.4f} | Alvo: {signal.take_profit:.4f} | "
             f"Qualidade: {signal.quality} | Regime: {signal.regime}"
