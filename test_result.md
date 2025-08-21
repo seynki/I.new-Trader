@@ -257,6 +257,18 @@ backend:
         agent: "testing"
         comment: "✅ PASSED - Asset normalization testing completed successfully. Verified _normalize_asset_for_iq() function at line 241-262 in server.py implements exact requirements: (1) EURUSD normalization: Remains EURUSD on weekdays (Mon-Fri), becomes EURUSD-OTC on weekends (Sat-Sun). Current day is Sunday, so EURUSD correctly normalizes to EURUSD-OTC. (2) BTCUSDT normalization: Correctly removes 'T' suffix, BTCUSDT→BTCUSD as specified. (3) Logic verification: Function checks if asset is 6-letter forex pair (adds -OTC on weekends), removes 'T' from USDT pairs, preserves USD-ending assets. (4) Error handling: Try-catch block returns original asset on exceptions. (5) Integration: Function called at lines 1649 and 1671 in quick-order endpoint. Normalization would be visible in echo.asset field in production environment with successful IQ Option connections."
 
+  - task: "Fix 'Resposta de compra inválida' no fluxo Deriv"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - Deriv Smoke Tests Reexecutados Após Fix: (1) GET /api/deriv/diagnostics: 200 OK em 560ms com todos campos obrigatórios [status='partial', summary='unknown', deriv_connected=false, deriv_authenticated=false, available_symbols=88, use_demo=true]. (2) POST /api/trading/quick-order: Payload EXATO {asset='VOLATILITY_10', direction='call', amount=1, expiration=5, option_type='binary', account_type='demo'} retorna 502 'Falha na compra: We couldn't process your trade. Refresh the page or relaunch the app to try again.' em 2028ms - MELHORIA CONFIRMADA: Erro agora é mais descritivo que 'Resposta de compra inválida' sem contexto. (3) GET /api/market-data: 200 OK em 63ms, todos os 7 símbolos mantidos formato Deriv [cryBTCUSD, cryETHUSD, cryBNBUSD, frxEURUSD, frxGBPUSD, frxUSDJPY, R_US30]. CONCLUSÃO: Fix aplicado com sucesso - mensagens de erro mais descritivas implementadas no fluxo Deriv conforme solicitado no review request."
+
 
 frontend:
   - task: "Header Design Improvement - Brain to Green Circle"
