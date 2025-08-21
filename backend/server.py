@@ -304,6 +304,9 @@ def to_deriv_code(asset: str) -> str:
                 return m
         except Exception:
             pass
+    # Index symbols (US30, NAS100, etc.)
+    if a in ('US30', 'NAS100', 'SP500', 'GER30', 'UK100', 'JPN225', 'AUS200'):
+        return f"R_{a}"  # Convert to synthetic index format
     # Forex 6 letras
     if len(a) == 6 and a.isalpha():
         return f"frx{a}"
