@@ -59,7 +59,7 @@ async def deriv_diagnostics() -> Dict[str, Any]:
         }
 
     # Try ping and active_symbols
-    responses = await _ws_call([{"ping": 1}, {"active_symbols": "brief"}], app_id=app_id)
+    responses = await _ws_call([{ "ping": 1 }, { "active_symbols": "brief" }], app_id=app_id)
 
     ping_ok = any("pong" in r for r in responses if isinstance(r, dict))
     symbols_count = 0
@@ -79,6 +79,43 @@ async def deriv_diagnostics() -> Dict[str, Any]:
         "available_symbols": symbols_count,
         "use_demo": use_demo,
         "errors": errors,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+
+async def deriv_auth_check() -> Dict[str, Any]:
+    """Authorize with DERIV_API_TOKEN and return account basics to verify token/app id.
+    Returns {status, summary, deriv_authenticated, loginid, is_virtual, currency, landing_company_name}
+    """
+    app_id = _get_env_int("DERIV_APP_ID", 0)
+    api_token = os.getenv("DERIV_API_TOKEN")
+    if app_id <= 0 or not api_token:
+        return {
+            "status": "not_configured",
+            "summary": "DERIV_APP_ID ou DERIV_API_TOKEN ausente",
+            "deriv_authenticated": False,
+        }
+
+    responses = await _ws_call([{ "authorize": api_token }], app_id=app_id, timeout=12.0)
+    auth = next((r for r in responses if isinstance(r, dict) and r.get("msg_type") == "authorize"), None)
+    if not auth:
+        err = next((r.get("error", {}).get("message") for r in responses if isinstance(r, dict) and r.get("error")), "falha ao autorizar")
+        return {"status": "error", "summary": err, "deriv_authenticated": False}
+
+    auth_data = auth.get("authorize", {})
+    loginid = auth_data.get("loginid")
+    is_virtual = bool(auth_data.get("is_virtual"))
+    currency = auth_data.get("currency")
+    landing_company_name = auth_data.get("landing_company_name")
+
+    return {
+        "status": "success",
+        "summary": "Token válido",
+        "deriv_authenticated": True,
+        "loginid": loginid,
+        "is_virtual": is_virtual,
+        "currency": currency,
+        "landing_company_name": landing_company_name,
         "timestamp": datetime.utcnow().isoformat(),
     }
 
@@ -114,6 +151,12 @@ def map_asset_to_deriv_symbol(asset: str) -> Optional[str]:
         "VOLATILITY_50": "R_50",
         "VOLATILITY_75": "R_75",
         "VOLATILITY_100": "R_100",
+        # Optional 1s variants if needed in future
+        "VOLATILITY_10_1S": "R_10S",
+        "VOLATILITY_25_1S": "R_25S",
+        "VOLATILITY_50_1S": "R_50S",
+        "VOLATILITY_75_1S": "R_75S",
+        "VOLATILITY_100_1S": "R_100S",
         "BOOM_300": "BOOM300N",
         "BOOM_500": "BOOM500N",
         "CRASH_300": "CRASH300N",
@@ -214,7 +257,7 @@ async def deriv_quick_order(asset: str, direction: str, amount: float, expiratio
 
     # Buy (robust): reautoriza e envia buy para garantir resposta correta como 2ª mensagem
     req_buy = {"buy": proposal_id, "price": float(ask_price) if ask_price is not None else float(amount)}
-    buy_responses = await _ws_call([{"authorize": api_token}, req_buy], app_id=app_id, timeout=12.0)
+    buy_responses = await _ws_call([{ "authorize": api_token }, req_buy], app_id=app_id, timeout=12.0)
 
     # Procurar erro explícito primeiro
     explicit_err = next((r.get("error", {}).get("message") for r in buy_responses if isinstance(r, dict) and r.get("error")), None)
