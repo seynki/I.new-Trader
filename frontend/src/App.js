@@ -371,24 +371,24 @@ function App() {
     }
   };
 
-  // Deriv-first symbol formatting: mostrar sempre códigos Deriv no frontend
+  // Deriv-first symbol formatting: sempre retornar códigos Deriv (frxEURUSD, cryBNBUSD, R_10, BOOM500N)
   const formatIQOptionSymbol = (symbol) => {
     if (!symbol) return '—';
-    const s = String(symbol).toUpperCase();
+    let s = String(symbol).toUpperCase();
 
-    // Já está no padrão Deriv
-    if (/^(FRX|CRY|R_|BOOM|CRASH)/.test(s)) return s;
+    // Normalizar formatos com barra (EUR/USD -> EURUSD)
+    if (s.includes('/')) s = s.replace('/', '');
 
-    // Formatos legados -> converter para Deriv
-    if (/^[A-Z]{6}$/.test(s)) { // EURUSD
-      return `FRX${s}`.toLowerCase().replace('frx', 'frx'); // manter prefixo frx
-    }
-    if (s.endsWith('USDT')) { // BTCUSDT -> cryBTCUSD
-      return `CRY${s.replace('USDT','USD')}`.toLowerCase().replace('cry', 'cry');
-    }
-    if (/USD$/.test(s) && !/^[A-Z]{6}$/.test(s)) { // BNBUSD -> cryBNBUSD
-      return `CRY${s}`.toLowerCase().replace('cry','cry');
-    }
+    // Já Deriv -> garantir prefixo em caixa correta
+    if (/^FRX[A-Z]{6}$/.test(s)) return 'frx' + s.slice(3);
+    if (/^CRY[A-Z]+USD$/.test(s)) return 'cry' + s.slice(3);
+    if (/^(R_|BOOM|CRASH)/.test(s)) return s; // manter sintéticos em upper
+
+    // Legados
+    if (/^[A-Z]{6}$/.test(s)) return 'frx' + s; // EURUSD
+    if (s.endsWith('USDT')) return 'cry' + s.replace('USDT','USD'); // BTCUSDT -> cryBTCUSD
+    if (/USD$/.test(s)) return 'cry' + s; // BNBUSD -> cryBNBUSD
+
     return s;
   };
 
