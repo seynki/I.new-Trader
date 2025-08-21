@@ -221,6 +221,17 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ PASSED - Deriv smoke tests completados com sucesso: (1) GET /api/health retorna 200 com status='healthy' conforme esperado. (2) GET /api/deriv/diagnostics retorna 200 com status='not_configured', deriv_connected=false (esperado sem DERIV_APP_ID), summary='DERIV_APP_ID ausente. Configure DERIV_APP_ID e DERIV_API_TOKEN (demo)'. (3) POST /api/trading/quick-order com asset='VOLATILITY_10' e USE_DERIV=0 retorna 503 'Serviço IQ Option temporariamente indisponível' (comportamento correto - usa fluxo IQ Option). (4) Endpoint não crasha com VOLATILITY_10 asset, retorna JSON estruturado. Sistema implementa feature flag segura: USE_DERIV=0 (padrão) usa IQ Option, USE_DERIV=1 sem DERIV_APP_ID retornaria 503 'Deriv não configurado', USE_DERIV=1 com credenciais inválidas retornaria 502/503 com erro de autorização estruturado. Todos endpoints funcionando conforme especificação do review request."
+  - task: "Backend - Padronizar nomes de ativos para Deriv em todas respostas"
+    implemented: true
+    working: "NA"
+    file: "server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Incluída função to_deriv_code() e aplicada em /api/market-data, /api/symbols, /api/signals, /api/alerts, WebSocket market_update e mensagens/alertas. Formatação de notificações alterada para usar códigos Deriv ao invés de IQ Option com barra."
       - working: true
         agent: "testing"
         comment: "✅ PASSED - Deriv Migration Review Request Testing Completed: (1) GET /api/deriv/diagnostics retorna 200 com todos campos obrigatórios [status='not_configured', summary='DERIV_APP_ID ausente...', deriv_connected=false, deriv_authenticated=false, available_symbols=0, use_demo=true]. (2) POST /api/trading/quick-order prioriza Deriv (USE_DERIV=1 default): EURUSD/VOLATILITY_10 retornam 503 'Deriv não configurado' sem erros de credenciais IQ Option, confirmando bypass correto. (3) Validações de expiração funcionando: EURUSD aceita 1-60, VOLATILITY_10 aceita 1-10 ticks, expiration=0/61/11 rejeitados com 400 e mensagens específicas. (4) VOLATILITY_10 aceita direction='put' (não é buy-only como BOOM/CRASH). (5) Sistema não bloqueia por credenciais IQ Option quando USE_DERIV=1. Migração parcial para Deriv funcionando conforme especificado no review request."
