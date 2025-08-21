@@ -388,7 +388,7 @@ test_plan:
 
 agent_communication:
   - agent: "main"
-    message: "🧪 Atualização: Implementada Fase 1.5. Frontend: feedback claro de sucesso/erro nos botões Buy/Sell, com estado de carregamento e exibição de order_id e provider quando disponível. Sem modo simulado (apenas real). Por favor testar cliques Buy/Sell na seção 'Oportunidades ao vivo' confirmando: (a) botão mostra 'Enviando...' durante a requisição; (b) em sucesso, alerta com ID e provider; (c) em erro, alerta 'ERRO' exibindo a mensagem do backend."
+    message: "🧪 Planejamento de Smoke Test solicitado pelo usuário: 1) GET /api/deriv/diagnostics deve retornar status/status_code corretos e campos de configuração; 2) POST /api/trading/quick-order com payload Opção A (VOLATILITY_10, call, amount=1, expiration=5, option_type=binary, account_type=demo); 3) GET /api/market-data deve conter símbolos no padrão Deriv (frx*, cry*, R_*, BOOM/CRASH quando aplicável); 4) Todas as chamadas usando REACT_APP_BACKEND_URL com prefixo /api. Executar primeiro backend; frontend será automatizado depois que backend passar."
   - agent: "testing"
     message: "✅ BACKEND TESTING COMPLETED - All high-priority backend tasks are working correctly. Notification system fully functional with proper endpoint responses, alert generation, and WebSocket connectivity. IQ Option integration working for notifications. Signal processing enhanced and generating quality signals. Fixed WebSocket dependency issue by installing uvicorn[standard] and websockets. System is ready for production use. All critical backend functionality verified and operational."
   - agent: "testing"
