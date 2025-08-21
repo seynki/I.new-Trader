@@ -11,7 +11,7 @@ def main():
     print("=" * 60)
     
     # Get the backend URL from frontend .env
-    backend_url = "https://deriv-format.preview.emergentagent.com"
+    backend_url = "https://market-data-verify.preview.emergentagent.com"
     
     tester = AITradingSystemTester(base_url=backend_url)
     

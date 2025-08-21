@@ -14,7 +14,7 @@ from datetime import datetime
 class DerivReviewTester:
     def __init__(self):
         # Use REACT_APP_BACKEND_URL from frontend/.env
-        self.base_url = "https://deriv-format.preview.emergentagent.com"
+        self.base_url = "https://market-data-verify.preview.emergentagent.com"
         self.tests_passed = 0
         self.tests_run = 0
         
