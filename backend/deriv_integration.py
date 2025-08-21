@@ -212,24 +212,37 @@ async def deriv_quick_order(asset: str, direction: str, amount: float, expiratio
     if not proposal_id:
         return {"success": False, "error": "ID de proposta ausente"}
 
-    # Buy
+    # Buy (robust): reautoriza e envia buy para garantir resposta correta como 2ª mensagem
     req_buy = {"buy": proposal_id, "price": float(ask_price) if ask_price is not None else float(amount)}
-    buy_responses = await _ws_call([req_buy], app_id=app_id, timeout=12.0)
-    buy_ok = any(isinstance(r, dict) and r.get("msg_type") == "buy" for r in buy_responses)
-    if not buy_ok:
-        err = next((r.get("error", {}).get("message") for r in buy_responses if isinstance(r, dict) and r.get("error")), "falha na compra")
-        return {"success": False, "error": f"Falha na compra: {err}"}
+    buy_responses = await _ws_call([{"authorize": api_token}, req_buy], app_id=app_id, timeout=12.0)
 
-    buy_data = next((r.get("buy") for r in buy_responses if isinstance(r, dict) and r.get("msg_type") == "buy"), None)
-    if not buy_data:
-        return {"success": False, "error": "Resposta de compra inválida"}
+    # Procurar erro explícito primeiro
+    explicit_err = next((r.get("error", {}).get("message") for r in buy_responses if isinstance(r, dict) and r.get("error")), None)
+    if explicit_err:
+        return {"success": False, "error": f"Falha na compra: {explicit_err}"}
+
+    # Encontrar mensagem de compra
+    buy_msg = next((r for r in buy_responses if isinstance(r, dict) and r.get("msg_type") == "buy"), None)
+    if not buy_msg:
+        # Sem mensagem 'buy' — retornar erro descritivo com amostra de resposta
+        sample = buy_responses[-1] if buy_responses else {"info": "sem respostas"}
+        return {"success": False, "error": f"Falha na compra: resposta inesperada ({str(sample)[:200]})"}
+
+    # Extrair dados de compra de forma tolerante
+    buy_data = buy_msg.get("buy") or buy_msg.get("purchase") or {}
+    contract_id = buy_data.get("contract_id") or buy_msg.get("contract_id") or buy_data.get("transaction_id") or buy_msg.get("transaction_id")
+    buy_price = buy_data.get("buy_price") or buy_msg.get("buy_price")
+    payout = buy_data.get("payout") or buy_msg.get("payout")
+
+    if not contract_id:
+        return {"success": False, "error": f"Falha na compra: resposta sem contract_id ({str(buy_msg)[:200]})"}
 
     return {
         "success": True,
-        "contract_id": buy_data.get("contract_id"),
+        "contract_id": contract_id,
         "proposal_id": proposal_id,
-        "purchase_price": buy_data.get("buy_price"),
-        "payout": buy_data.get("payout"),
+        "purchase_price": buy_price,
+        "payout": payout,
         "asset": asset,
         "direction": direction,
         "duration_unit": duration_unit,
