@@ -3843,6 +3843,7 @@ def main():
     
     # Run focused tests based on current review request
     tests = [
+        tester.test_deriv_standardization_and_buy_only_validation, # NEW: Deriv standardization & buy-only validation
         tester.test_deriv_migration_review_request,           # NEW: Current Deriv migration review request
         tester.test_deriv_smoke_tests,                        # Deriv smoke tests (review request)
         tester.test_bridge_only_mode,                         # Bridge-only mode testing
