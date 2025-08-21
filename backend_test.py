@@ -3835,14 +3835,206 @@ class AITradingSystemTester:
         self.tests_run += 1
         return all_passed
 
+    def test_deriv_smoke_tests_review_request(self):
+        """Test Deriv smoke tests as per review request after deriv_integration.py fix"""
+        print(f"\n🎯 Testing Deriv Smoke Tests (Review Request)...")
+        print(f"   Base URL: {self.base_url} (from REACT_APP_BACKEND_URL)")
+        print(f"   All endpoints with /api prefix for Kubernetes ingress compatibility")
+        
+        all_passed = True
+        
+        # 1) GET /api/deriv/diagnostics - Expected 200 with required fields
+        print(f"\n1️⃣ Testing GET /api/deriv/diagnostics...")
+        start_time = time.time()
+        success, response = self.run_test(
+            "Deriv Diagnostics",
+            "GET",
+            "api/deriv/diagnostics",
+            200,
+            timeout=60  # Allow more time for diagnostics
+        )
+        elapsed_ms = int((time.time() - start_time) * 1000)
+        
+        if success and isinstance(response, dict):
+            print(f"   ⏱️ Response time: {elapsed_ms}ms")
+            
+            # Check required fields
+            required_fields = ['status', 'summary', 'deriv_connected', 'deriv_authenticated', 'available_symbols', 'use_demo']
+            missing_fields = []
+            
+            for field in required_fields:
+                if field in response:
+                    print(f"   ✅ Required field '{field}' present: {response[field]}")
+                else:
+                    print(f"   ❌ Required field '{field}' missing")
+                    missing_fields.append(field)
+                    all_passed = False
+            
+            if not missing_fields:
+                print(f"   ✅ All required fields present in diagnostics response")
+            else:
+                print(f"   ❌ Missing required fields: {missing_fields}")
+        else:
+            print(f"   ❌ Deriv diagnostics failed or returned non-dict response")
+            all_passed = False
+        
+        # 2) POST /api/trading/quick-order with Deriv Volatility payload
+        print(f"\n2️⃣ Testing POST /api/trading/quick-order with Deriv Volatility payload...")
+        
+        # Exact payload from review request (Opção A - Deriv Volatility)
+        deriv_payload = {
+            "asset": "VOLATILITY_10",
+            "direction": "call",
+            "amount": 1,
+            "expiration": 5,
+            "option_type": "binary",
+            "account_type": "demo"
+        }
+        
+        print(f"   📋 Payload: {deriv_payload}")
+        
+        start_time = time.time()
+        success, response = self.run_test(
+            "Quick Order - Deriv Volatility",
+            "POST",
+            "api/trading/quick-order",
+            [200, 502, 503],  # Accept multiple status codes
+            deriv_payload,
+            timeout=60  # Allow time for Deriv connection attempt
+        )
+        elapsed_ms = int((time.time() - start_time) * 1000)
+        
+        if success:
+            print(f"   ⏱️ Response time: {elapsed_ms}ms")
+            
+            if isinstance(response, dict):
+                # Check response based on expected scenarios
+                if 'success' in response and response.get('success') == True:
+                    # Scenario: Valid credentials, successful order
+                    if 'contract_id' in response:
+                        print(f"   ✅ SUCCESS: Valid credentials detected, order placed with contract_id: {response.get('contract_id')}")
+                    else:
+                        print(f"   ✅ SUCCESS: Order placed successfully: {response}")
+                
+                elif 'detail' in response or 'message' in response:
+                    # Scenario: Error with descriptive message
+                    error_msg = response.get('detail') or response.get('message', '')
+                    
+                    if 'Deriv não configurado' in error_msg:
+                        print(f"   ✅ EXPECTED: No valid DERIV_APP_ID/DERIV_API_TOKEN - '{error_msg}'")
+                    elif 'Resposta de compra inválida' in error_msg and len(error_msg) > 30:
+                        print(f"   ✅ IMPROVED: More descriptive error message - '{error_msg}'")
+                    elif 'Resposta de compra inválida' in error_msg:
+                        print(f"   ❌ OLD ERROR: Still getting 'Resposta de compra inválida' without context - '{error_msg}'")
+                        all_passed = False
+                    else:
+                        print(f"   ✅ DESCRIPTIVE ERROR: '{error_msg}'")
+                else:
+                    print(f"   ⚠️ Unexpected response format: {response}")
+            else:
+                print(f"   ⚠️ Non-dict response: {response}")
+        else:
+            print(f"   ❌ Quick order test failed")
+            all_passed = False
+        
+        # 3) GET /api/market-data - Should remain with default Deriv symbols
+        print(f"\n3️⃣ Testing GET /api/market-data for Deriv symbols...")
+        start_time = time.time()
+        success, response = self.run_test(
+            "Market Data - Deriv Symbols",
+            "GET",
+            "api/market-data",
+            200
+        )
+        elapsed_ms = int((time.time() - start_time) * 1000)
+        
+        if success and isinstance(response, dict):
+            print(f"   ⏱️ Response time: {elapsed_ms}ms")
+            
+            if 'data' in response and isinstance(response['data'], list):
+                market_data = response['data']
+                symbols = [item.get('symbol', '') for item in market_data]
+                
+                print(f"   📊 Found {len(symbols)} symbols: {symbols}")
+                
+                # Check for Deriv format symbols (frx*, cry*, R_*)
+                deriv_symbols = [s for s in symbols if s.startswith(('frx', 'cry', 'R_', 'BOOM', 'CRASH', 'VOLATILITY'))]
+                print(f"   ✅ Deriv format symbols: {len(deriv_symbols)}/{len(symbols)}")
+                
+                # Ensure no old format symbols
+                old_format_symbols = [s for s in symbols if '/' in s or s in ['SP500', 'NAS100']]
+                if old_format_symbols:
+                    print(f"   ❌ Old format symbols detected: {old_format_symbols}")
+                    all_passed = False
+                else:
+                    print(f"   ✅ No old format symbols detected")
+                
+                if len(deriv_symbols) > 0:
+                    print(f"   ✅ Market data contains Deriv symbols as expected")
+                else:
+                    print(f"   ❌ No Deriv format symbols found")
+                    all_passed = False
+            else:
+                print(f"   ❌ Market data response missing 'data' field or not a list")
+                all_passed = False
+        else:
+            print(f"   ❌ Market data test failed")
+            all_passed = False
+        
+        # Summary
+        if all_passed:
+            self.tests_passed += 1
+            print(f"\n🎉 Deriv Smoke Tests PASSED!")
+            print(f"   ✅ GET /api/deriv/diagnostics: 200 with required fields")
+            print(f"   ✅ POST /api/trading/quick-order: Proper error handling or success with contract_id")
+            print(f"   ✅ GET /api/market-data: Deriv symbols maintained")
+        else:
+            print(f"\n❌ Deriv Smoke Tests FAILED!")
+            print(f"   ❌ One or more tests did not meet expectations")
+        
+        self.tests_run += 1
+        return all_passed
+
+    def run_deriv_smoke_tests_only(self):
+        """Run only the Deriv smoke tests as requested in review"""
+        print("🚀 Starting Deriv Smoke Tests (Review Request)...")
+        print(f"📍 Base URL: {self.base_url}")
+        print("=" * 80)
+        
+        # Run only the Deriv smoke tests
+        result = self.test_deriv_smoke_tests_review_request()
+        
+        # Final summary
+        print("\n" + "=" * 80)
+        print("🏁 DERIV SMOKE TESTS SUMMARY")
+        print("=" * 80)
+        print(f"✅ Tests Passed: {self.tests_passed}")
+        print(f"❌ Tests Failed: {self.tests_run - self.tests_passed}")
+        print(f"📊 Total Tests: {self.tests_run}")
+        
+        success_rate = (self.tests_passed / self.tests_run) * 100 if self.tests_run > 0 else 0
+        print(f"📈 Success Rate: {success_rate:.1f}%")
+        
+        if result:
+            print("🎉 DERIV SMOKE TESTS: PASSED")
+            return True
+        else:
+            print("❌ DERIV SMOKE TESTS: FAILED")
+            return False
+
 def main():
     print("🚀 Starting AI Trading System Backend Tests - Review Request Focus")
     print("=" * 80)
     
     tester = AITradingSystemTester()
     
+    # Check if we should run only Deriv smoke tests
+    if len(sys.argv) > 1 and sys.argv[1] == "deriv-smoke":
+        return 0 if tester.run_deriv_smoke_tests_only() else 1
+    
     # Run focused tests based on current review request
     tests = [
+        tester.test_deriv_smoke_tests_review_request,         # NEW: Specific review request smoke tests
         tester.test_deriv_standardization_and_buy_only_validation, # NEW: Deriv standardization & buy-only validation
         tester.test_deriv_migration_review_request,           # NEW: Current Deriv migration review request
         tester.test_deriv_smoke_tests,                        # Deriv smoke tests (review request)
