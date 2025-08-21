@@ -7,7 +7,7 @@ import threading
 from datetime import datetime
 
 class AITradingSystemTester:
-    def __init__(self, base_url="https://naming-standard.preview.emergentagent.com"):
+    def __init__(self, base_url="https://deriv-format.preview.emergentagent.com"):
         self.base_url = base_url
         self.tests_run = 0
         self.tests_passed = 0

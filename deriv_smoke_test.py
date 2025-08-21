@@ -10,7 +10,7 @@ import time
 
 def test_deriv_smoke_tests():
     """Test Deriv endpoints and safe feature flag as per review request"""
-    base_url = "https://naming-standard.preview.emergentagent.com"
+    base_url = "https://deriv-format.preview.emergentagent.com"
     print(f"🎯 Testing Deriv Smoke Tests (Review Request)...")
     print(f"📍 Base URL: {base_url}")
     
