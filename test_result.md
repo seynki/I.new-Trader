@@ -388,6 +388,8 @@ test_plan:
   current_focus:
     - "Deriv Endpoints and Safe Feature Flag"
     - "Backend - Padronizar nomes de ativos para Deriv em todas respostas"
+    - "Fix 'Resposta de compra inválida' no fluxo Deriv"
+
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
