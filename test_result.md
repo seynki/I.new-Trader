@@ -253,6 +253,17 @@ frontend:
       - working: true
         agent: "testing"
         comment: "✅ PASSED - Green circle animation visible in header, replacing brain icon successfully. Animation pulse effect working correctly."
+  - task: "Frontend - Padronizar exibição para códigos Deriv (frx*/cry*/R_*/BOOM/CRASH)"
+    implemented: true
+    working: "NA"
+    file: "App.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Atualizado helper de formatação de símbolos para retornar sempre códigos Deriv. Todos os lugares que exibem ativos (cards, tabela, dropdown de alertas, filtros) agora usam formatIQOptionSymbol() que converte EURUSD→frxEURUSD, BTCUSDT→cryBTCUSD, BNBUSD→cryBNBUSD."
 
   - task: "Table Spacing and Layout Improvements"
     implemented: true
